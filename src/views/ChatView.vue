@@ -1,0 +1,135 @@
+<template>
+    <main class="artificialIntellengence">
+        <header class="topBlock">
+            <h2 class="titleText">AI Chat Hub(MVP)</h2>
+            <div class="allModel">
+                <select v-model="chat.provider" class="model">
+                    <option value="mock">Mock</option>
+                    <option value="openai">OpenAI</option>
+                    <option value="gemini" disabled>Gemini</option>
+                    <option value="perplexity" disabled>Perplexity</option>
+                </select>
+                <button type="button" @click="chat.resetConversation" class="newChat">新對話</button>
+            </div>
+        </header>
+        <section class="conversation">
+            <p v-if="chat.messages.length === 0" class="hint">先輸入一句話測試(目前用 Mock provider)。</p>
+            <div v-for="m in chat.messages" :key="m.id" class="allMessage">
+                <div class="messageBox">
+                    {{ m.role === 'user' ? '你' : (m.role === 'assistant' ? '機器人' : 'system') }}
+                    <span class="">{{ new Date(m.createdAt).toLocaleTimeString() }}</span>
+                </div>
+                <div class="">{{ m.content }}</div>
+            </div>
+            <p v-if="chat.error" class="errorMessage">錯誤：{{ chat.error }}</p>
+        </section>
+        <footer class="user">
+            <input
+                class="userText"
+                v-model="input"
+                @keydown.enter.exact.prevent="send"
+                :disabled="chat.sending"
+                placeholder="輸入訊息，Enter送出"
+            >
+            <button type="button" class="enterButton" :disabled="!canSend" @click="send">{{ chat.sending ? "送出中..." : "送出" }}</button>
+        </footer>
+    </main>
+</template>
+<script setup lang="ts">
+    import{ computed, ref } from "vue";
+    import { useChatStore } from "@/stores/chat.store";
+    const chat = useChatStore();
+    const input = ref("");
+    const canSend = computed(() => !chat.sending && input.value.trim().length > 0);
+    async function send(){
+        if(!canSend.value) return;
+        const text = input.value;
+        input.value = "";
+        await chat.sendUserText(text);
+    }
+</script>
+<style scoped>
+.artificialIntellengence{
+    width: 100%;
+    min-height: 100vh;
+    padding: 2em 0;
+    display: flex;
+    flex-flow: column nowrap;
+    justify-content: center;
+    align-items: center;
+    gap: 4em;
+}
+.topBlock{}
+.allModel{
+    display: flex;
+    flex-flow: row nowrap;
+    gap: 1.5em;
+}
+.model{
+    background-color: #000000;
+    color: #FFFFFF;
+    padding: 0.5em 1em;
+}
+.newChat{
+    padding: 0.5em 1.5em;
+    border-radius: 8px;
+    background-color: #8b0000;
+    color: #FFFFFF;
+    transition: all ease 300ms;
+}
+.hint{
+    font-size: 1.5em;
+    font-weight: 700;
+    color: #ff93fd;
+}
+.allMessage{
+    display: flex;
+    flex-flow: column nowrap;
+    gap: 0.8em;
+}
+.userText{
+    line-height: 1.2;
+    padding: 0.5em;
+}
+.enterButton{
+    padding: 0.5em 1em;
+    margin: 0 1em;
+    color: #ffffff;
+    background-color: #8b0000;
+    border-radius: 8px;
+    transition: all ease 300ms;
+    &:disabled{
+        background-color: #c5c5c5;
+        color: #474747;
+        opacity: 0.7;
+    }
+}
+
+
+
+
+@media(width>768px){
+    .artificialIntellengence{
+        
+    }
+    .topBlock{}
+    .allModel{
+
+    }
+    .model{
+
+    }
+    .newChat:hover{
+        color: gold;
+        background-color: #000000;
+    }
+    .hint{
+
+    }
+
+    .enterButton:hover{
+        color: gold;
+        background-color: #000000;
+    }
+}
+</style>

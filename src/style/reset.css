@@ -1,0 +1,159 @@
+/* =========================
+   Global Reset + Base (Vue/Vite friendly)
+   ========================= */
+
+/* 1) 更直覺的 box model */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+/* 2) 移除預設 margin，避免每個元素自帶間距 */
+* {
+  margin: 0;
+}
+
+/* 3) html/body 基本設定 */
+html {
+  -webkit-text-size-adjust: 100%; /* iOS 旋轉/縮放文字問題 */
+  text-size-adjust: 100%;
+  font-size: 16px;
+  line-height: 1.5;
+  scroll-behavior: smooth; /* 你如果有做 scrollTo 動畫不想被影響可移除 */
+}
+
+body {
+  min-height: 100vh;
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans TC",
+    "Helvetica Neue", Arial, "Apple Color Emoji", "Segoe UI Emoji";
+  color: #111;
+  background: #fff;
+
+  /* 文字渲染優化（可選） */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* 4) 讓媒體元素更好用：預設不溢出、維持比例 */
+img,
+picture,
+video,
+canvas,
+svg {
+  display: block;
+  max-width: 100%;
+}
+
+/* 如果你希望圖片預設不要被拉伸，保持比例 */
+img,
+video {
+  height: auto;
+}
+
+/* 5) 表單元素：字體繼承 + 行為一致 */
+input,
+button,
+textarea,
+select {
+  font: inherit;
+  color: inherit;
+}
+
+/* button 常見 reset */
+button {
+  cursor: pointer;
+  background: transparent;
+  border: 0;
+  padding: 0;
+}
+
+/* 針對 disabled 狀態 */
+button:disabled,
+input:disabled,
+textarea:disabled,
+select:disabled {
+  cursor: not-allowed;
+}
+
+/* textarea 更符合使用習慣 */
+textarea {
+  resize: vertical;
+}
+
+/* 6) 文字元素：避免長字串把版面撐爆 */
+p,
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  overflow-wrap: break-word;
+}
+
+/* 7) 連結預設（你可依設計系統改） */
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+/* 有些人會想保留底線可以改成：
+a { text-decoration: underline; text-underline-offset: 0.2em; }
+*/
+
+/* 8) 列表、表格 reset */
+ul,
+ol {
+  list-style: none;
+  padding: 0;
+}
+
+table {
+  border-collapse: collapse;
+  border-spacing: 0;
+}
+
+/* 9) 讓 icon / svg 不會被文字 line-height 影響 */
+svg {
+  flex-shrink: 0;
+}
+
+/* 10) focus 樣式：保留可存取性（不建議直接 outline: none） */
+:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 2px;
+}
+
+/* 11) 減少動畫（使用者有設定「降低動態效果」時） */
+@media (prefers-reduced-motion: reduce) {
+  html:focus-within {
+    scroll-behavior: auto;
+  }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* 12) 可選：常用的「容器」與「隱藏」工具類（不想要可刪） */
+.container {
+  width: min(1200px, 100% - 2rem);
+  margin-inline: auto;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
