@@ -2,6 +2,7 @@
     <main class="artificialIntellengence">
         <header class="topBlock">
             <h2 class="titleText">AI Chat Hub(MVP)</h2>
+            <p style="opacity:.6;">目前 Provider：{{ chat.provider }}</p>
             <div class="allModel">
                 <select v-model="chat.provider" class="model">
                     <option value="mock">Mock</option>
