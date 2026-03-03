@@ -1,7 +1,7 @@
 import OpenAI from "openai";
 type Role = "user" | "assistant" | "system";
 type ChatMessage = { role:Role;content:string };
-export defult async function handler(req:any,res:any){
+export deafult async function handler(req:any,res:any){
     try{
         if(req.method !== "POST"){
             return res.status(405).json({ error: "Method Not Allowed" });
