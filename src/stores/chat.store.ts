@@ -4,11 +4,12 @@ import type { ChatMessage, ProviderId } from "@/types/chat";
 import { uid } from "@/types/chat";
 import { mockProvider } from "@/providers/mock";
 import type { ChatProvider } from "@/providers/base";
-import { openaiPronider } from "@/providers/openai";
+import { openaiProvider } from "@/providers/openai";
 
 const providers: Record<string, ChatProvider> = {
   mock: mockProvider,
   // 之後會加 openai / gemini / perplexity（都走同一個介面）
+  openai: openaiProvider,
 };
 
 

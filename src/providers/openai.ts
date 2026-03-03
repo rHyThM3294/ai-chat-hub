@@ -1,9 +1,9 @@
 import type { ChatProvider } from "./base";
 import type { ChatMessage, ChatSendInput, ChatSendResult } from "@/types/chat";
-export const openaiPronider: ChatProvider = {
-    id: "opanai",
+export const openaiProvider: ChatProvider = {
+    id: "openai",
     displayName:"OpenAI (via Vercel)",
-    async send(input: ChatSendInput, history:ChatMessage[]):Promise<ChatSendResult>{
+    async send(_input: ChatSendInput, history:ChatMessage[]):Promise<ChatSendResult>{
         const res = await fetch("/api/chat",{
             method:"POST",
             headers:{ "content-type": "application/json" },
