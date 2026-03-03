@@ -120,7 +120,7 @@
     .model{
 
     }
-    .newChat:hover{
+    .newChat:hover:not(:disabled){
         color: gold;
         background-color: #000000;
     }
