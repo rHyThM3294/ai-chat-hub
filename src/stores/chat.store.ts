@@ -1,6 +1,7 @@
 import { defineStore } from "pinia";
 import { computed, ref } from "vue";
-import type { ChatMessage, ProviderId, ChatProvider } from "@/types/chat";
+import type { ChatMessage, ProviderId } from "@/types/chat";
+import type { ChatProvider } from "@/providers/base";
 import { uid } from "@/types/chat";
 
 import { mockProvider } from "@/providers/mock";
