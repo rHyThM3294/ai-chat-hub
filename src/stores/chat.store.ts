@@ -1,15 +1,14 @@
 import { defineStore } from "pinia";
 import { computed, ref } from "vue";
-import type { ChatMessage, ProviderId } from "@/types/chat";
+import type { ChatMessage, ProviderId, ChatProvider } from "@/types/chat";
 import { uid } from "@/types/chat";
+
 import { mockProvider } from "@/providers/mock";
-import type { ChatProvider } from "@/providers/base";
 import { openaiProvider } from "@/providers/openai";
 import { groqProvider } from "@/providers/groq";
 
-const providers: Record<string, ChatProvider> = {
+const providers: Partial<Record<ProviderId, ChatProvider>> = {
   mock: mockProvider,
-  // 之後會加 openai / gemini / perplexity（都走同一個介面）
   openai: openaiProvider,
   groq: groqProvider,
 };

@@ -1,4 +1,4 @@
-export type ProviderId = "mock" | "openai" | "gemini" | "perplexity" | "groq";
+export type ProviderId = "mock" | "openai" | "groq" | "gemini" | "perplexity";
 
 export type Role = "user" | "assistant" | "system";
 

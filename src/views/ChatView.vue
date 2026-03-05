@@ -7,6 +7,7 @@
                 <select v-model="chat.provider" class="model">
                     <option value="mock">Mock</option>
                     <option value="openai">OpenAI</option>
+                    <option value="groq">Groq</option>
                     <option value="gemini" disabled>Gemini</option>
                     <option value="perplexity" disabled>Perplexity</option>
                 </select>
