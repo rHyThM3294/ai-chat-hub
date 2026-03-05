@@ -85,11 +85,14 @@
     color: #ff93fd;
 }
 .conversation{
+    width: 100%;
     display: flex;
+    flex-flow: column nowrap;
     justify-content: center;
     align-items: center;
 }
 .allMessage{
+    width: 90%;
     display: flex;
     flex-flow: column nowrap;
     gap: 0.8em;
