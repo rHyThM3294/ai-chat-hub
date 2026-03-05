@@ -5,13 +5,14 @@ import { uid } from "@/types/chat";
 import { mockProvider } from "@/providers/mock";
 import type { ChatProvider } from "@/providers/base";
 import { openaiProvider } from "@/providers/openai";
+import { groqProvider } from "@/providers/groq";
 
 const providers: Record<string, ChatProvider> = {
   mock: mockProvider,
   // 之後會加 openai / gemini / perplexity（都走同一個介面）
   openai: openaiProvider,
+  groq: groqProvider,
 };
-
 
 export const useChatStore = defineStore("chat", () => {
   const conversationId = ref(uid("c"));

@@ -128,7 +128,7 @@
 
     }
 
-    .enterButton:hover{
+    .enterButton:hover:not(:disabled){
         color: gold;
         background-color: #000000;
     }
