@@ -84,6 +84,11 @@
     font-weight: 700;
     color: #ff93fd;
 }
+.conversation{
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
 .allMessage{
     display: flex;
     flex-flow: column nowrap;
