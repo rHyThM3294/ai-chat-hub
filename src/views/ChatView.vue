@@ -268,8 +268,8 @@ onMounted(() => {
 .enterButton{
   position: absolute;
   right: 8px;
-  bottom: 8px;
-  padding: 0.55em 0.95em;
+  bottom: 12px;
+  padding: 0.5em 1em;
   color: #ffffff;
   background-color: #8b0000;
   border-radius: 10px;
