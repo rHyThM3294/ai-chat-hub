@@ -43,6 +43,7 @@
       <p v-if="chat.error" class="errorMessage">
         錯誤：{{ chat.error }}
       </p>
+      <p v-if="chat.sending" class="typingHint">AI 回覆中...</p>
     </section>
     <footer class="user">
       <div class="inputWrapper">
@@ -120,11 +121,12 @@ async function send(){
   scrollToBottom();
 }
 watch(
-  () => chat.messages.length,
+  () => chat.messages,
   async () => {
     await nextTick();
     scrollToBottom();
-  }
+  },
+  { deep: true }
 );
 watch(
   () => chat.error,
@@ -199,6 +201,12 @@ onMounted(() => {
   color: #ff93fd;
   text-align: center;
   margin: auto 0;
+}
+.typingHint{
+  width: 92%;
+  max-width: 1100px;
+  opacity: 0.6;
+  font-style: italic;
 }
 .allMessage{
   width: 100%;
