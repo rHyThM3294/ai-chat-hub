@@ -26,14 +26,24 @@
             <p v-if="chat.error" class="errorMessage">錯誤：{{ chat.error }}</p>
         </section>
         <footer class="user">
-            <input
+            <div class="inputWrapper">
+                <input
                 class="userText"
                 v-model="input"
                 @keydown.enter.exact.prevent="send"
                 :disabled="chat.sending"
                 placeholder="輸入訊息，Enter送出"
-            >
-            <button type="button" class="enterButton" :disabled="!canSend" @click="send">{{ chat.sending ? "送出中..." : "送出" }}</button>
+                />
+
+                <button
+                type="button"
+                class="enterButton"
+                :disabled="!canSend"
+                @click="send"
+                >
+                {{ chat.sending ? "送出中...." : "送出" }}
+                </button>
+            </div>
         </footer>
     </main>
 </template>
@@ -91,23 +101,40 @@
     justify-content: center;
     align-items: center;
 }
+
 .allMessage{
     width: 90%;
     display: flex;
     flex-flow: column nowrap;
     gap: 0.8em;
 }
+.user{
+    width:100%;
+    display:flex;
+    justify-content:center;
+}
+.inputWrapper{
+    position:relative;
+    width:90%;
+    max-width:1000px;
+}
 .userText{
-    line-height: 1.2;
-    padding: 0.5em;
+    width:100%;
+    line-height:1.5;
+    padding:0.75em 3.5em 0.75em 1em;
+    font-size:16px;
+    border-radius:8px;
 }
 .enterButton{
-    padding: 0.5em 1em;
-    margin: 0 1em;
-    color: #ffffff;
-    background-color: #8b0000;
-    border-radius: 8px;
-    transition: all ease 300ms;
+    position:absolute;
+    right:6px;
+    top:50%;
+    transform:translateY(-50%);
+    padding:0.4em 0.8em;
+    color:#ffffff;
+    background-color:#8b0000;
+    border-radius:6px;
+    transition:all ease 300ms;
     &:disabled{
         background-color: #c5c5c5;
         color: #474747;
@@ -119,27 +146,19 @@
 
 
 @media(width>768px){
-    .artificialIntellengence{
-        
-    }
+    .artificialIntellengence{}
     .topBlock{}
-    .allModel{
-
-    }
-    .model{
-
-    }
+    .allModel{}
+    .model{}
     .newChat:hover:not(:disabled){
         color: gold;
         background-color: #000000;
     }
-    .hint{
-
-    }
+    .hint{}
     .allMessage{
         max-width: 1200px;
     }
-
+    .userText{}
     .enterButton:hover:not(:disabled){
         color: gold;
         background-color: #000000;
