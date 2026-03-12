@@ -2,24 +2,24 @@ export type ProviderId = "mock" | "openai" | "groq" | "gemini" | "perplexity";
 
 export type Role = "user" | "assistant" | "system";
 
-export interface ChatMessage {
+export interface ChatMessage{
   id: string;
   role: Role;
   content: string;
   createdAt: number;
 }
 
-export interface ChatSendInput {
+export interface ChatSendInput{
   conversationId: string;
   provider: ProviderId;
   userText: string;
 }
 
-export interface ChatSendResult {
+export interface ChatSendResult{
   assistantText: string;
 }
 
-export interface ChatProvider {
+export interface ChatProvider{
   key: ProviderId;
   name: string;
   send: (
@@ -28,6 +28,6 @@ export interface ChatProvider {
   ) => Promise<ChatSendResult>;
 }
 
-export function uid(prefix = "m") {
+export function uid(prefix = "m"){
   return `${prefix}_${Math.random().toString(16).slice(2)}_${Date.now()}`;
 }

@@ -183,7 +183,7 @@ onMounted(() => {
   transition: all ease 300ms;
 }
 .conversation{
-  width: 92%;
+  width:92%;
   max-width: 1100px;
   flex: 1;
   min-height: 45vh;
@@ -209,19 +209,26 @@ onMounted(() => {
   font-style: italic;
 }
 .allMessage{
-  width: 100%;
+  width: fit-content;
+  max-width: 82%;
   display: flex;
   flex-flow: column nowrap;
   gap: 0.45em;
   padding: 0.9em 1em;
-  border-radius: 14px;
-  background-color: #f5f5f5;
+  border-radius: 16px;
+  word-break: break-word;
 }
 .allMessage.isUser{
-  background-color: #f7e9e9;
+  align-self: flex-end;
+  background-color: #8b0000;
+  color: #ffffff;
+  border-bottom-right-radius: 4px;
 }
 .allMessage.isAssistant{
+  align-self: flex-start;
   background-color: #f3f3f3;
+  color: #222222;
+  border-bottom-left-radius: 4px;
 }
 .messageBox{
   display: flex;
@@ -231,13 +238,12 @@ onMounted(() => {
   font-weight: 700;
 }
 .messageTime{
-  font-size: 0.85rem;
-  opacity: 0.65;
+  font-size: 0.8em;
+  opacity: 0.7;
   font-weight: 400;
 }
 .messageContent{
   white-space: pre-wrap;
-  word-break: break-word;
   line-height: 1.6;
 }
 .errorMessage{
