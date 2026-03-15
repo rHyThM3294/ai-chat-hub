@@ -1,7 +1,7 @@
 /* =========================
    Global Reset + Base (Vue/Vite friendly)
    ========================= */
-
+@import "highlight.js/styles/github-dark.css";
 /* 1) 更直覺的 box model */
 *,
 *::before,
