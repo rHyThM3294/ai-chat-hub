@@ -2,7 +2,7 @@
   <main class="artificialIntellengence">
     <header class="topBlock">
       <h2 class="titleText">AI Chat Hub(MVP)</h2>
-      <p class="providerText">目前 Provider：{{ chat.provider }}</p>
+      <p class="providerText">目前Provider：{{ chat.provider }}</p>
       <div class="allModel">
         <select v-model="chat.provider" class="model">
           <option value="mock">Mock</option>
@@ -11,39 +11,32 @@
           <option value="gemini" disabled>Gemini</option>
           <option value="perplexity" disabled>Perplexity</option>
         </select>
-        <button
-          type="button"
-          @click="chat.resetConversation"
-          class="newChat"
-        >
-          新對話
-        </button>
+        <button type="button" @click="chat.resetConversation" class="newChat">新對話</button>
       </div>
     </header>
     <section ref="conversationRef" class="conversation">
       <p v-if="chat.messages.length === 0" class="hint">
-        先輸入一句話測試（目前使用 {{ chat.provider }} provider）。
+        目前使用{{ chat.provider }} provider。
       </p>
-      <div
+      <div 
         v-for="m in chat.messages"
         :key="m.id"
-        class="allMessage"
-        :class="{ isUser: m.role === 'user', isAssistant: m.role === 'assistant' }"
+        class="allmessage"
+        :class="{ isUser:m.role === 'user',isAssistant:m.role === 'assistant' }"
       >
         <div class="messageBox">
-          {{ m.role === 'user' ? '你' : (m.role === 'assistant' ? '機器人' : 'system') }}
-          <span class="messageTime">
-            {{ new Date(m.createdAt).toLocaleTimeString() }}
-          </span>
+          <span>{{ m.role === 'user' ? '你' :(m.role === 'assistant'? '機器人' : 'system') }}</span>
+          <div class="messageMeta">
+            <span class="messageToken">≈{{ m.tokenCount ?? 0 }}tokens</span>
+            <span class="messageTime">{{ new Date(m.createdAt).toLocaleTimeString() }}</span>
+          </div>
         </div>
-        <div class="messageContent">
-          {{ m.content }}
-        </div>
+        <MessageContent
+          :content="m.content"
+          :is-streaming="m.isStreaming"
+        />  
       </div>
-      <p v-if="chat.error" class="errorMessage">
-        錯誤：{{ chat.error }}
-      </p>
-      <p v-if="chat.sending" class="typingHint">AI 回覆中...</p>
+      <p v-if="chat.error" class="errorMessage">錯誤：{{ chat.error }}</p>
     </section>
     <footer class="user">
       <div class="inputWrapper">
@@ -57,7 +50,7 @@
           autocomplete="off"
           autocapitalize="sentences"
           spellcheck="true"
-          placeholder="輸入訊息，Enter 送出，Shift + Enter 換行"
+          placeholder="輸入訊息"
           @input="handleInput"
           @keydown="handleKeydown"
         ></textarea>
@@ -66,16 +59,15 @@
           class="enterButton"
           :disabled="!canSend"
           @click="send"
-        >
-          {{ chat.sending ? "送出中..." : "送出" }}
-        </button>
+        >{{ chat.sending ? "送出中..." : "送出" }}</button>
       </div>
     </footer>
   </main>
 </template>
 <script setup lang="ts">
-import { computed, nextTick, onMounted, ref, watch } from "vue";
+import { computed, nextTick, onMounted, ref, watch }from "vue";
 import { useChatStore } from "@/stores/chat.store";
+import MessageContent from "@/components/chat/MessageContent.vue";
 const chat = useChatStore();
 const input = ref("");
 const textareaRef = ref<HTMLTextAreaElement | null>(null);
@@ -83,37 +75,34 @@ const conversationRef = ref<HTMLElement | null>(null);
 const canSend = computed(() => !chat.sending && input.value.trim().length > 0);
 function resizeTextarea(){
   const el = textareaRef.value;
-  if (!el) return;
+  if(!el) return;
   el.style.height = "auto";
-  // 設一個最大高度，避免輸入太多把整個畫面吃掉
   const maxHeight = 180;
-  el.style.height = `${Math.min(el.scrollHeight, maxHeight)}px`;
-  el.style.overflowY = el.scrollHeight > maxHeight ? "auto" : "hidden";
+  el.style.height = `${Math.min(el.scrollHeight,maxHeight)}px`;
+  el.style.overflowY= el.scrollHeight > maxHeight ? "auto" : "hidden";
 }
 function scrollToBottom(smooth = true){
   const el = conversationRef.value;
-  if (!el) return;
+  if(!el) return;
   el.scrollTo({
-    top: el.scrollHeight,
-    behavior: smooth ? "smooth" : "auto",
+    top:el.scrollHeight,
+    behavior:smooth ? "smooth" : "auto",
   });
 }
 function handleInput(){
   resizeTextarea();
 }
-function handleKeydown(e: KeyboardEvent){
-  if (e.key === "Enter" && e.shiftKey){
-    return;
-  }
-  if (e.key === "Enter" && !e.shiftKey){
+function handleKeydown(e:KeyboardEvent){
+  if(e.key === "Enter" && e.shiftKey)return;
+  if(e.key === "Enter" && !e.shiftKey){
     e.preventDefault();
     send();
   }
 }
 async function send(){
-  if (!canSend.value) return;
+  if(!canSend.value) return;
   const text = input.value.trim();
-  if (!text) return;
+  if(!text)return;
   input.value = "";
   resizeTextarea();
   await chat.sendUserText(text);
@@ -126,7 +115,7 @@ watch(
     await nextTick();
     scrollToBottom();
   },
-  { deep: true }
+  { deep:true }
 );
 watch(
   () => chat.error,
@@ -137,11 +126,11 @@ watch(
 );
 onMounted(() => {
   resizeTextarea();
-  scrollToBottom(false);
+  scrollToBottom(false)
 });
 </script>
 <style scoped>
-.artificialIntellengence{
+.artificialIntellgence{
   width: 100%;
   min-height: 100vh;
   padding: 1.5em 0 2em;
@@ -155,23 +144,23 @@ onMounted(() => {
   max-width: 1100px;
   display: flex;
   flex-flow: column nowrap;
-  gap: 1em;
+  gap: 0.75em;
 }
 .titleText{
   margin: 0;
 }
-.providerText{
-  opacity: 0.6;
+.providerText,.tokenText{
+  opacity: 0.7;
   margin: 0;
 }
 .allModel{
   display: flex;
-  flex-flow: row wrap;
+  flex-flow: row nowrap;
   gap: 1em;
 }
 .model{
   background-color: #000000;
-  color: #FFFFFF;
+  color: #ffffff;
   padding: 0.5em 1em;
   border-radius: 8px;
 }
@@ -179,11 +168,11 @@ onMounted(() => {
   padding: 0.5em 1.5em;
   border-radius: 8px;
   background-color: #8b0000;
-  color: #FFFFFF;
+  color: #ffffff;
   transition: all ease 300ms;
 }
 .conversation{
-  width:92%;
+  width: 92%;
   max-width: 1100px;
   flex: 1;
   min-height: 45vh;
@@ -196,17 +185,11 @@ onMounted(() => {
   scroll-behavior: smooth;
 }
 .hint{
-  font-size: 1rem;
+  font-size: 1em;
   font-weight: 700;
   color: #ff93fd;
   text-align: center;
   margin: auto 0;
-}
-.typingHint{
-  width: 92%;
-  max-width: 1100px;
-  opacity: 0.6;
-  font-style: italic;
 }
 .allMessage{
   width: fit-content;
@@ -215,7 +198,7 @@ onMounted(() => {
   flex-flow: column nowrap;
   gap: 0.45em;
   padding: 0.9em 1em;
-  border-radius: 16px;
+  border-radius: 1em;
   word-break: break-word;
 }
 .allMessage.isUser{
@@ -232,19 +215,21 @@ onMounted(() => {
 }
 .messageBox{
   display: flex;
-  align-items: center;
   justify-content: space-between;
+  align-items: center;
   gap: 1em;
   font-weight: 700;
 }
-.messageTime{
-  font-size: 0.8em;
+.messageMeta{
+  display: flex;
+  gap: 0.5em;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.messageToken,.messageTime{
+  font-size: 0.75em;
   opacity: 0.7;
   font-weight: 400;
-}
-.messageContent{
-  white-space: pre-wrap;
-  line-height: 1.6;
 }
 .errorMessage{
   color: #b00020;
@@ -268,8 +253,8 @@ onMounted(() => {
   max-height: 180px;
   line-height: 1.5;
   padding: 0.9em 5.5em 0.9em 1em;
-  font-size: 16px; /* 手機避免自動放大 */
-  border-radius: 16px;
+  font-size: 1em;
+  border-radius: 1em;
   border: 1px solid #d7d7d7;
   resize: none;
   overflow-y: hidden;
@@ -282,8 +267,8 @@ onMounted(() => {
 .enterButton{
   position: absolute;
   right: 8px;
-  bottom: 12px;
-  padding: 0.5em 1em;
+  bottom: 8px;
+  padding: 0.55em 0.95em;
   color: #ffffff;
   background-color: #8b0000;
   border-radius: 10px;
@@ -295,11 +280,11 @@ onMounted(() => {
   opacity: 0.7;
 }
 @media(width>768px){
-  .artificialIntellengence{
+  .artificialIntellgence{
     padding: 2em 0 2.5em;
   }
   .hint{
-    font-size: 1.15rem;
+    font-size: 1.15em;
   }
   .newChat:hover:not(:disabled){
     color: gold;
