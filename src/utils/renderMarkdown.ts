@@ -7,7 +7,6 @@ const md = new MarkdownIt({
   linkify: true,
   breaks: true,
 });
-
 md.options.highlight = (code: string, lang: string) => {
   if (lang && hljs.getLanguage(lang)) {
     try {
@@ -15,7 +14,6 @@ md.options.highlight = (code: string, lang: string) => {
         language: lang,
         ignoreIllegals: true,
       }).value;
-
       return `<pre class="hljs"><code class="language-${lang}">${highlighted}</code></pre>`;
     } catch {
       // ignore
