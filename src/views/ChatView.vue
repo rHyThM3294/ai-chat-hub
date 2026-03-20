@@ -138,7 +138,7 @@ onMounted(() => {
   display: flex;
   flex-flow: column nowrap;
   align-items: center;
-  gap: 1.5em;
+  gap: 2em;
   padding: 2em 0;
 }
 .topBlock{
