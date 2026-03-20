@@ -139,6 +139,7 @@ onMounted(() => {
   flex-flow: column nowrap;
   align-items: center;
   gap: 1.5em;
+  padding: 2em 0;
 }
 .topBlock{
   width: 92%;
