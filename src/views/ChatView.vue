@@ -38,7 +38,7 @@
           />
         </div>
       </div>
-      <p v-if="chat.error" class="errorMessage">錯誤：{{ chat.error }}</p>
+      <p v-if="chat.error" class="errorMessage">錯誤:{{ chat.error }}</p>
     </section>
     <footer class="user">
       <div class="inputWrapper">
@@ -61,7 +61,7 @@
           class="enterButton"
           :disabled="!canSend"
           @click="send"
-        >{{ chat.sending ? "送出中..." : "送出" }}</button>
+        >{{ chat.sending ? "送出中...." : "送出" }}</button>
       </div>
     </footer>
   </main>
@@ -135,7 +135,6 @@ onMounted(() => {
 .artificialIntellgence{
   width: 100%;
   min-height: 100vh;
-  padding: 1.5em 0 2em;
   display: flex;
   flex-flow: column nowrap;
   align-items: center;
@@ -286,6 +285,11 @@ onMounted(() => {
   background-color: #c5c5c5;
   color: #474747;
   opacity: 0.7;
+}
+.topBlock,.conversation,.user{
+  width: 92%;
+  max-width: 1100px;
+  margin: 0 auto;
 }
 @media(width>768px){
   .artificialIntellgence{
