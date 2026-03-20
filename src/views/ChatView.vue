@@ -21,20 +21,22 @@
       <div 
         v-for="m in chat.messages"
         :key="m.id"
-        class="allmessage"
-        :class="{ isUser:m.role === 'user',isAssistant:m.role === 'assistant' }"
+        class="messageRow"
+        :class="{ isUser: m.role === 'user', isAssistant: m.role === 'assistant' }"
       >
-        <div class="messageBox">
-          <span>{{ m.role === 'user' ? '你' :(m.role === 'assistant'? '機器人' : 'system') }}</span>
-          <div class="messageMeta">
-            <span class="messageToken">≈{{ m.tokenCount ?? 0 }}tokens</span>
-            <span class="messageTime">{{ new Date(m.createdAt).toLocaleTimeString() }}</span>
+        <div class="allMessage">
+          <div class="messageBox">
+            <span>{{ m.role === 'user' ? '你' : '機器人' }}</span>
+            <div class="messageMeta">
+              <span>≈{{ m.tokenCount ?? 0 }} tokens</span>
+              <span>{{ new Date(m.createdAt).toLocaleTimeString() }}</span>
+            </div>
           </div>
+          <MessageContent
+            :content="m.content"
+            :is-streaming="m.isStreaming"
+          />
         </div>
-        <MessageContent
-          :content="m.content"
-          :is-streaming="m.isStreaming"
-        />  
       </div>
       <p v-if="chat.error" class="errorMessage">錯誤：{{ chat.error }}</p>
     </section>
@@ -191,26 +193,32 @@ onMounted(() => {
   text-align: center;
   margin: auto 0;
 }
-.allMessage{
-  width: fit-content;
-  max-width: 82%;
+.messageRow{
+  width: 100%;
   display: flex;
-  flex-flow: column nowrap;
-  gap: 0.45em;
+}
+.messageRow.isUser{
+  justify-content: flex-end;
+}
+.messageRow.isAssistant{
+  justify-content: flex-start;
+}
+.allMessage{
+  max-width: 70%;
   padding: 0.9em 1em;
   border-radius: 1em;
-  word-break: break-word;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4em;
 }
-.allMessage.isUser{
-  align-self: flex-end;
+.messageRow.isUser .allMessage{
   background-color: #8b0000;
-  color: #ffffff;
+  color: white;
   border-bottom-right-radius: 4px;
 }
-.allMessage.isAssistant{
-  align-self: flex-start;
+.messageRow.isAssistant .allMessage{
   background-color: #f3f3f3;
-  color: #222222;
+  color: #222;
   border-bottom-left-radius: 4px;
 }
 .messageBox{
