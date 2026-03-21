@@ -8,6 +8,14 @@ export interface ChatMessage{
     tokenCount?:number;
     isStreaming?:boolean;
 }
+export interface ChatConversation{
+  id: string;
+  title: string;
+  provider: ProviderId;
+  messages: ChatMessage[];
+  createdAt: number;
+  updatedAt: number;
+}
 export interface ChatSendInput{
   conversationId:string;
   provider:ProviderId;
@@ -17,5 +25,5 @@ export interface ChatSendResult{
   assistantText:string;
 }
 export function uid(prefix = "m"){
-  return `${prefix}_${Math.random().toString(16).slice(2)}_${Date.now()}`
+  return `${prefix}_${Math.random().toString(16).slice(2)}_${Date.now()};`
 }
