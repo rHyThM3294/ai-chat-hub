@@ -1,6 +1,6 @@
 import { defineStore } from "pinia";
 import { computed, ref, watch } from "vue";
-import type { ChatConversation, ChatMessage, ProviderId, ChatSendInput } from "@/types/chat";
+import type { ChatConversation, ChatMessage, ProviderId } from "@/types/chat";
 import { uid } from "@/types/chat";
 import type { ChatProvider } from "@/providers/base";
 import { estimateTokens } from "@/utils/token";
@@ -72,7 +72,6 @@ export const useChatStore = defineStore("chat", () => {
       activeConversation.value.updatedAt = Date.now();
     },
   });
-  const currentProvider = computed(() => providers[provider.value]);
   const totalTokens = computed(() =>
     messages.value.reduce(
       (sum, msg) => sum + (msg.tokenCount ?? estimateTokens(msg.content)),
