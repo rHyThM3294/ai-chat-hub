@@ -4,8 +4,8 @@
     <section class="artificialIntelligence">
       <header class="topBlock">
         <h2 class="titleText">AI Chat Hub(MVP)</h2>
-        <p class="providerText">目前 Provider：{{ chat.provider }}</p>
-        <p class="tokenText">目前對話 Token：約{{ chat.totalTokens }}</p>
+        <p class="providerText">目前Provider：{{ chat.provider }}</p>
+        <p class="tokenText">目前對話Token：約{{ chat.totalTokens }}</p>
         <div class="allModel">
           <select v-model="chat.provider" class="model">
             <option value="mock">Mock</option>
