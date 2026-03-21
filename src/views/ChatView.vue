@@ -1,5 +1,5 @@
 <template>
-  <main class="artificialIntellengence">
+  <main class="artificialIntelligence">
     <header class="topBlock">
       <h2 class="titleText">AI Chat Hub(MVP)</h2>
       <p class="providerText">目前Provider：{{ chat.provider }}</p>
@@ -14,7 +14,7 @@
         <button type="button" @click="chat.resetConversation" class="newChat">新對話</button>
       </div>
     </header>
-    <section ref="conversationRef" class="conversation">
+      <section ref="conversationRef" class="conversation">
       <p v-if="chat.messages.length === 0" class="hint">
         目前使用{{ chat.provider }} provider。
       </p>
@@ -132,7 +132,7 @@ onMounted(() => {
 });
 </script>
 <style scoped>
-.artificialIntellgence{
+.artificialIntelligence{
   width: 100%;
   min-height: 100vh;
   display: flex;
@@ -275,7 +275,7 @@ onMounted(() => {
 .enterButton{
   position: absolute;
   right: 8px;
-  bottom: 8px;
+  bottom: 12px;
   padding: 0.55em 0.95em;
   color: #ffffff;
   background-color: #8b0000;
