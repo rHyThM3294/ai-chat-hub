@@ -25,23 +25,77 @@
         type="button"
         class="conversationItem"
         :class="{ active: item.id === chat.activeConversationId }"
-        @click="chat.switchConversation(item.id)"
+        @click="handleSelect(item.id)"
       >
         <div class="conversationInfo">
-          <p class="conversationTitle">{{ item.title }}</p>
+          <template v-if="editingId === item.id">
+            <input
+              ref="editingInputRef"
+              v-model="editingTitle"
+              class="conversationTitleInput"
+              type="text"
+              maxlength="40"
+              @click.stop
+              @dblclick.stop
+              @keydown.enter.prevent="saveEditing(item.id)"
+              @keydown.esc.prevent="cancelEditing"
+              @blur="saveEditing(item.id)"
+            />
+          </template>
+          <template v-else>
+            <p
+              class="conversationTitle"
+              title="雙擊可修改名稱"
+              @dblclick.stop="startEditing(item.id, item.title)"
+            >
+              {{ item.title }}
+            </p>
+          </template>
           <p class="conversationMeta">
             {{ item.provider }} ・ {{ item.messages.length }} 則訊息
           </p>
         </div>
-        <span class="deleteButton" @click.stop="chat.deleteConversation(item.id)">✕</span>
+        <span
+          class="deleteButton"
+          @click.stop="chat.deleteConversation(item.id)"
+        >
+          ✕
+        </span>
       </button>
     </div>
   </aside>
 </template>
 <script setup lang="ts">
+import { nextTick, ref, useTemplateRef } from "vue";
 import { useChatStore } from "@/stores/chat.store";
-defineEmits<{(e: "close-sidebar"): void;}>();
+defineEmits<{
+  (e: "close-sidebar"): void;
+}>();
 const chat = useChatStore();
+const editingId = ref<string | null>(null);
+const editingTitle = ref("");
+const editingInputRef = useTemplateRef<HTMLInputElement>("editingInputRef");
+function handleSelect(id: string){
+  if (editingId.value) return;
+  chat.switchConversation(id);
+}
+async function startEditing(id: string, title: string){
+  editingId.value = id;
+  editingTitle.value = title;
+  await nextTick();
+  editingInputRef.value?.focus();
+  editingInputRef.value?.select();
+}
+function saveEditing(id: string){
+  if (editingId.value !== id) return;
+  chat.renameConversation(id, editingTitle.value);
+  editingId.value = null;
+  editingTitle.value = "";
+}
+function cancelEditing(){
+  editingId.value = null;
+  editingTitle.value = "";
+}
 </script>
 <style scoped>
 .conversationSidebar{
@@ -63,7 +117,7 @@ const chat = useChatStore();
 }
 .sidebarTitle{
   margin: 0;
-  font-size: 0.95em;
+  font-size: 0.95rem;
   font-weight: 700;
   color: #222;
 }
@@ -118,11 +172,13 @@ const chat = useChatStore();
     box-shadow 250ms ease,
     transform 250ms ease;
 }
-
 .conversationItem.active{
   border-color: #8b0000;
-  background:linear-gradient(180deg, #fff8f8 0%, #fff2f2 100%);
-  box-shadow:0 10px 24px rgba(139, 0, 0, 0.08),inset 3px 0 0 #8b0000;
+  background:
+    linear-gradient(180deg, #fff8f8 0%, #fff2f2 100%);
+  box-shadow:
+    0 10px 24px rgba(139, 0, 0, 0.08),
+    inset 3px 0 0 #8b0000;
 }
 .conversationInfo{
   min-width: 0;
@@ -135,6 +191,20 @@ const chat = useChatStore();
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  user-select: none;
+}
+.conversationTitleInput{
+  width: 100%;
+  margin: 0 0 4px;
+  padding: 6px 8px;
+  border: 1px solid #8b0000;
+  border-radius: 8px;
+  background-color: #fff;
+  color: #222;
+  font-size: 14px;
+  font-weight: 700;
+  outline: none;
+  box-sizing: border-box;
 }
 .conversationMeta{
   margin: 0;
@@ -166,14 +236,14 @@ const chat = useChatStore();
   transform: translateY(0);
 }
 @media (width > 768px){
-  .newConversationButton:hover:not(:disabled){
-    background-color: #000000;
+  .newConversationButton:hover:not(:disabled) {
+    background-color: #000;
     color: gold;
   }
-  .sidebarCloseButton:hover:not(:disabled){
+  .sidebarCloseButton:hover{
     background-color: #efefef;
   }
-  .conversationItem:hover {
+  .conversationItem:hover{
     border-color: #8b0000;
     box-shadow: 0 8px 18px rgba(0, 0, 0, 0.06);
     /* transform: translateY(-1px); */
