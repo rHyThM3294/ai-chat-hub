@@ -1,11 +1,46 @@
 <template>
   <main class="chatLayout">
-    <ConversationSidebar />
+    <button
+      type="button"
+      class="sidebarToggle"
+      :class="{ isHidden: sidebarOpen }"
+      @click="openSidebar"
+      aria-label="開啟聊天室側欄"
+    >
+      <span></span>
+      <span></span>
+      <span></span>
+    </button>
+    <div
+      class="sidebarOverlay"
+      :class="{ isVisible: sidebarOpen }"
+      @click="closeSidebar"
+    ></div>
+    <aside
+      class="sidebarPanel"
+      :class="{ isOpen: sidebarOpen }"
+    >
+      <div class="sidebarPanelHeader">
+        <button
+          type="button"
+          class="sidebarClose"
+          @click="closeSidebar"
+          aria-label="關閉聊天室側欄"
+        >
+          ✕
+        </button>
+      </div>
+      <ConversationSidebar />
+    </aside>
     <section class="artificialIntelligence">
       <header class="topBlock">
-        <h2 class="titleText">AI Chat Hub(MVP)</h2>
-        <p class="providerText">目前Provider：{{ chat.provider }}</p>
-        <p class="tokenText">目前對話Token：約{{ chat.totalTokens }}</p>
+        <div class="titleRow">
+          <div class="titleGroup">
+            <h2 class="titleText">AI Chat Hub(MVP)</h2>
+            <p class="providerText">目前Provider：{{ chat.provider }}</p>
+            <p class="tokenText">目前對話Token：約{{ chat.totalTokens }}</p>
+          </div>
+        </div>
         <div class="allModel">
           <select v-model="chat.provider" class="model">
             <option value="mock">Mock</option>
@@ -81,7 +116,7 @@
   </main>
 </template>
 <script setup lang="ts">
-import { computed, nextTick, onMounted, ref, watch } from "vue";
+import { computed, nextTick, onMounted, onBeforeUnmount, ref, watch } from "vue";
 import { useChatStore } from "@/stores/chat.store";
 import MessageContent from "@/components/chat/MessageContent.vue";
 import ConversationSidebar from "@/components/chat/ConversationSidebar.vue";
@@ -89,6 +124,8 @@ const chat = useChatStore();
 const input = ref("");
 const textareaRef = ref<HTMLTextAreaElement | null>(null);
 const conversationRef = ref<HTMLElement | null>(null);
+const sidebarOpen = ref(false);
+const isDesktop = ref(false);
 const canSend = computed(() => !chat.sending && input.value.trim().length > 0);
 function resizeTextarea(){
   const el = textareaRef.value;
@@ -98,7 +135,7 @@ function resizeTextarea(){
   el.style.height = `${Math.min(el.scrollHeight, maxHeight)}px`;
   el.style.overflowY = el.scrollHeight > maxHeight ? "auto" : "hidden";
 }
-function scrollToBottom(smooth = true){
+function scrollToBottom(smooth = true) {
   const el = conversationRef.value;
   if (!el) return;
   el.scrollTo({
@@ -110,8 +147,8 @@ function handleInput(){
   resizeTextarea();
 }
 function handleKeydown(e: KeyboardEvent){
-  if (e.key === "Enter" && e.shiftKey) return;
-  if (e.key === "Enter" && !e.shiftKey){
+  if(e.key === "Enter" && e.shiftKey) return;
+  if(e.key === "Enter" && !e.shiftKey){
     e.preventDefault();
     send();
   }
@@ -125,6 +162,20 @@ async function send(){
   await chat.sendUserText(text);
   await nextTick();
   scrollToBottom();
+}
+function syncViewportState(){
+  isDesktop.value = window.innerWidth > 768;
+  sidebarOpen.value = isDesktop.value;
+}
+function openSidebar(){
+  sidebarOpen.value = true;
+}
+function closeSidebar(){
+  if(isDesktop.value){
+    sidebarOpen.value = true;
+    return;
+  }
+  sidebarOpen.value = false;
 }
 watch(
   () => chat.messages,
@@ -146,19 +197,104 @@ watch(
   async () => {
     await nextTick();
     scrollToBottom(false);
+    if(!isDesktop.value){
+      sidebarOpen.value = false;
+    }
   }
 );
 onMounted(() => {
   resizeTextarea();
   scrollToBottom(false);
+  syncViewportState();
+  window.addEventListener("resize", syncViewportState);
+});
+onBeforeUnmount(() => {
+  window.removeEventListener("resize", syncViewportState);
 });
 </script>
 <style scoped>
 .chatLayout{
   width: 100%;
   min-height: 100vh;
+  position: relative;
   display: flex;
   background-color: #ffffff;
+}
+.sidebarToggle{
+  position: fixed;
+  top: 14px;
+  left: 14px;
+  z-index: 1200;
+  width: 46px;
+  height: 46px;
+  border: none;
+  border-radius: 12px;
+  background-color: #111111;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 5px;
+  padding: 0 11px;
+  cursor: pointer;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.16);
+}
+.sidebarToggle span{
+  display: block;
+  width: 100%;
+  height: 2px;
+  border-radius: 999px;
+  background-color: #ffffff;
+}
+.sidebarToggle.isHidden{
+  opacity: 0;
+  pointer-events: none;
+}
+.sidebarOverlay{
+  position: fixed;
+  inset: 0;
+  z-index: 1050;
+  background-color: rgba(0, 0, 0, 0.38);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 300ms ease;
+}
+.sidebarOverlay.isVisible{
+  opacity: 1;
+  pointer-events: auto;
+}
+.sidebarPanel{
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 1100;
+  width: min(84vw, 300px);
+  height: 100vh;
+  background-color: #ffffff;
+  box-shadow: 12px 0 30px rgba(0, 0, 0, 0.12);
+  transform: translateX(-100%);
+  transition: transform 300ms ease;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+.sidebarPanel.isOpen{
+  transform: translateX(0);
+}
+.sidebarPanelHeader{
+  display: flex;
+  justify-content: flex-end;
+  padding: 12px 12px 0;
+  background-color: #fafafa;
+  border-bottom: 1px solid #ececec;
+}
+.sidebarClose{
+  width: 40px;
+  height: 40px;
+  border: none;
+  border-radius: 10px;
+  background-color: transparent;
+  font-size: 20px;
+  cursor: pointer;
 }
 .artificialIntelligence{
   flex: 1;
@@ -167,47 +303,59 @@ onMounted(() => {
   display: flex;
   flex-flow: column nowrap;
   align-items: center;
-  gap: 2em;
-  padding: 2em 0;
+  gap: 1.25em;
+  padding: 4.5em 0 1.5em;
+}
+.topBlock,.conversation,.user{
+  width: min(92%, 1100px);
+  margin: 0 auto;
 }
 .topBlock{
-  width: 92%;
-  max-width: 1100px;
   display: flex;
   flex-flow: column nowrap;
-  gap: 0.75em;
+  gap: 0.9em;
 }
-.titleText{
+.titleRow{
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1em;
+}
+.titleGroup{
+  min-width: 0;
+}
+.titleText {
   margin: 0;
+  font-size: 1.5rem;
 }
 .providerText,.tokenText{
+  margin: 0.3em 0 0;
   opacity: 0.7;
-  margin: 0;
 }
 .allModel{
   display: flex;
   flex-flow: row wrap;
-  gap: 1em;
+  gap: 0.75em;
 }
 .model{
+  min-height: 42px;
   background-color: #000000;
   color: #ffffff;
   padding: 0.5em 1em;
   border-radius: 8px;
 }
 .newChat{
-  padding: 0.5em 1.5em;
+  min-height: 42px;
+  padding: 0.5em 1.25em;
+  border: none;
   border-radius: 8px;
   background-color: #8b0000;
   color: #ffffff;
   transition: all ease 300ms;
 }
 .conversation{
-  width: 92%;
-  max-width: 1100px;
   flex: 1;
-  min-height: 45vh;
-  max-height: 58vh;
+  min-height: 50vh;
   overflow-y: auto;
   display: flex;
   flex-flow: column nowrap;
@@ -222,7 +370,7 @@ onMounted(() => {
   text-align: center;
   margin: auto 0;
 }
-.messageRow{
+.messageRow {
   width: 100%;
   display: flex;
 }
@@ -233,7 +381,7 @@ onMounted(() => {
   justify-content: flex-start;
 }
 .allMessage{
-  max-width: 70%;
+  max-width: 88%;
   padding: 0.9em 1em;
   border-radius: 1em;
   display: flex;
@@ -242,12 +390,12 @@ onMounted(() => {
 }
 .messageRow.isUser .allMessage{
   background-color: #8b0000;
-  color: white;
+  color: #ffffff;
   border-bottom-right-radius: 4px;
 }
 .messageRow.isAssistant .allMessage{
   background-color: #f3f3f3;
-  color: #222;
+  color: #222222;
   border-bottom-left-radius: 4px;
 }
 .messageBox{
@@ -274,11 +422,11 @@ onMounted(() => {
   padding: 0.5em 0;
 }
 .user{
-  width: 92%;
-  max-width: 1100px;
   position: sticky;
   bottom: 0;
   padding-bottom: max(0.5em, env(safe-area-inset-bottom));
+  background:
+    linear-gradient(to top, #ffffff 72%, rgba(255, 255, 255, 0));
 }
 .inputWrapper{
   position: relative;
@@ -297,6 +445,7 @@ onMounted(() => {
   overflow-y: hidden;
   box-sizing: border-box;
   outline: none;
+  background-color: #ffffff;
 }
 .userText:focus{
   border-color: #8b0000;
@@ -308,6 +457,7 @@ onMounted(() => {
   padding: 0.55em 0.95em;
   color: #ffffff;
   background-color: #8b0000;
+  border: none;
   border-radius: 10px;
   transition: all ease 300ms;
 }
@@ -316,27 +466,35 @@ onMounted(() => {
   color: #474747;
   opacity: 0.7;
 }
-.topBlock,.conversation,.user{
-  width: 92%;
-  max-width: 1100px;
-  margin: 0 auto;
-}
-@media (width <= 768px){
-  .chatLayout{
-    flex-direction: column;
+@media(width > 768px){
+  .sidebarToggle{
+    top: 18px;
+    left: 18px;
+  }
+  .sidebarOverlay{
+    display: none;
+  }
+  .sidebarPanel{
+    width: 300px;
+    transform: translateX(0);
+    box-shadow: none;
+    border-right: 1px solid #ececec;
+  }
+  .sidebarPanelHeader{
+    display: none;
   }
   .artificialIntelligence{
-    padding: 1.5em 0;
-  }
-  .allMessage{
-    max-width: 88%;
+    margin-left: 300px;
+    padding: 2em 0;
+    gap: 2em;
   }
   .conversation{
-    max-height: none;
-    min-height: 50vh;
+    min-height: 45vh;
+    max-height: 58vh;
   }
-}
-@media(width > 768px){
+  .allMessage{
+    max-width: 70%;
+  }
   .hint{
     font-size: 1.15em;
   }
@@ -347,6 +505,9 @@ onMounted(() => {
   .enterButton:hover:not(:disabled){
     color: gold;
     background-color: #000000;
+  }
+  .sidebarClose:hover {
+    background-color: #efefef;
   }
 }
 </style>

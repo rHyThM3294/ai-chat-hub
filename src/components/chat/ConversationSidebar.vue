@@ -22,7 +22,12 @@
             {{ item.provider }} ・ {{ item.messages.length }} 則訊息
           </p>
         </div>
-        <span class="deleteButton" @click.stop="chat.deleteConversation(item.id)">✕</span>
+        <span
+          class="deleteButton"
+          @click.stop="chat.deleteConversation(item.id)"
+        >
+          ✕
+        </span>
       </button>
     </div>
   </aside>
@@ -33,19 +38,19 @@ const chat = useChatStore();
 </script>
 <style scoped>
 .conversationSidebar{
-  width: 280px;
-  min-width: 280px;
-  height: 100vh;
+  width: 100%;
+  min-width: 0;
+  height: 100%;
   display: flex;
   flex-direction: column;
   gap: 12px;
   padding: 16px 12px;
   box-sizing: border-box;
-  border-right: 1px solid #e5e7eb;
   background-color: #fafafa;
 }
 .newConversationButton{
   width: 100%;
+  min-height: 44px;
   border: none;
   border-radius: 12px;
   padding: 12px;
@@ -56,10 +61,12 @@ const chat = useChatStore();
 }
 .conversationList{
   flex: 1;
+  min-height: 0;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
   gap: 8px;
+  padding-right: 2px;
 }
 .conversationItem{
   width: 100%;
@@ -79,6 +86,7 @@ const chat = useChatStore();
   border-color: #8b0000;
   background-color: #fff5f5;
 }
+
 .conversationInfo{
   min-width: 0;
   flex: 1;
@@ -97,26 +105,19 @@ const chat = useChatStore();
   color: #666;
 }
 .deleteButton{
+  flex-shrink: 0;
   color: #666;
   cursor: pointer;
   line-height: 1;
+  padding-top: 2px;
 }
-@media(width > 768px){
+@media (width > 768px){
   .newConversationButton:hover:not(:disabled){
     background-color: #000;
     color: gold;
   }
   .conversationItem:hover:not(:disabled){
     border-color: #8b0000;
-  }
-}
-@media (width <= 768px){
-  .conversationSidebar{
-    width: 100%;
-    min-width: 0;
-    height: auto;
-    border-right: none;
-    border-bottom: 1px solid #e5e7eb;
   }
 }
 </style>
