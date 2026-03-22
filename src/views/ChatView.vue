@@ -108,7 +108,7 @@
             :disabled="!canSend"
             @click="send"
           >
-            {{ chat.sending ? "送出中...." : "送出" }}
+            {{ chat.sending ? "送出中..." : "送出" }}
           </button>
         </div>
       </footer>
