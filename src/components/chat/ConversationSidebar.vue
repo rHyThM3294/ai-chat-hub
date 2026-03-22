@@ -2,6 +2,7 @@
   <aside class="conversationSidebar">
     <div class="sidebarTopBar">
       <p class="sidebarTitle">聊天室</p>
+
       <button
         type="button"
         class="sidebarCloseButton"
@@ -11,6 +12,7 @@
         ✕
       </button>
     </div>
+
     <button
       type="button"
       class="newConversationButton"
@@ -18,9 +20,19 @@
     >
       + 新對話
     </button>
+
+    <div class="searchWrapper">
+      <input
+        v-model="searchText"
+        type="text"
+        class="searchInput"
+        placeholder="搜尋聊天室"
+      />
+    </div>
+
     <div class="conversationList">
       <button
-        v-for="item in chat.conversations"
+        v-for="item in filteredConversations"
         :key="item.id"
         type="button"
         class="conversationItem"
@@ -42,6 +54,7 @@
               @blur="saveEditing(item.id)"
             />
           </template>
+
           <template v-else>
             <p
               class="conversationTitle"
@@ -51,10 +64,12 @@
               {{ item.title }}
             </p>
           </template>
+
           <p class="conversationMeta">
             {{ item.provider }} ・ {{ item.messages.length }} 則訊息
           </p>
         </div>
+
         <span
           class="deleteButton"
           @click.stop="chat.deleteConversation(item.id)"
@@ -62,43 +77,74 @@
           ✕
         </span>
       </button>
+
+      <p
+        v-if="filteredConversations.length === 0"
+        class="emptySearchText"
+      >
+        找不到符合的聊天室
+      </p>
     </div>
   </aside>
 </template>
+
 <script setup lang="ts">
-import { nextTick, ref, useTemplateRef } from "vue";
+import { computed, nextTick, ref } from "vue";
 import { useChatStore } from "@/stores/chat.store";
+
 defineEmits<{
   (e: "close-sidebar"): void;
 }>();
+
 const chat = useChatStore();
+
 const editingId = ref<string | null>(null);
 const editingTitle = ref("");
-const editingInputRef = useTemplateRef<HTMLInputElement>("editingInputRef");
-function handleSelect(id: string){
+const editingInputRef = ref<HTMLInputElement | null>(null);
+const searchText = ref("");
+
+const filteredConversations = computed(() => {
+  const keyword = searchText.value.trim().toLowerCase();
+  if (!keyword) return chat.conversations;
+
+  return chat.conversations.filter((item) => {
+    return (
+      item.title.toLowerCase().includes(keyword) ||
+      item.provider.toLowerCase().includes(keyword)
+    );
+  });
+});
+
+function handleSelect(id: string) {
   if (editingId.value) return;
   chat.switchConversation(id);
 }
-async function startEditing(id: string, title: string){
+
+async function startEditing(id: string, title: string) {
   editingId.value = id;
   editingTitle.value = title;
+
   await nextTick();
   editingInputRef.value?.focus();
   editingInputRef.value?.select();
 }
-function saveEditing(id: string){
+
+function saveEditing(id: string) {
   if (editingId.value !== id) return;
+
   chat.renameConversation(id, editingTitle.value);
   editingId.value = null;
   editingTitle.value = "";
 }
-function cancelEditing(){
+
+function cancelEditing() {
   editingId.value = null;
   editingTitle.value = "";
 }
 </script>
+
 <style scoped>
-.conversationSidebar{
+.conversationSidebar {
   width: 100%;
   min-width: 0;
   height: 100%;
@@ -109,19 +155,22 @@ function cancelEditing(){
   box-sizing: border-box;
   background-color: #fafafa;
 }
-.sidebarTopBar{
+
+.sidebarTopBar {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
 }
-.sidebarTitle{
+
+.sidebarTitle {
   margin: 0;
   font-size: 0.95rem;
   font-weight: 700;
   color: #222;
 }
-.sidebarCloseButton{
+
+.sidebarCloseButton {
   width: 40px;
   height: 40px;
   flex-shrink: 0;
@@ -133,7 +182,8 @@ function cancelEditing(){
   cursor: pointer;
   transition: all ease 300ms;
 }
-.newConversationButton{
+
+.newConversationButton {
   width: 100%;
   min-height: 44px;
   border: none;
@@ -144,7 +194,28 @@ function cancelEditing(){
   cursor: pointer;
   transition: all ease 300ms;
 }
-.conversationList{
+
+.searchWrapper {
+  width: 100%;
+}
+
+.searchInput {
+  width: 100%;
+  min-height: 42px;
+  padding: 0 12px;
+  border: 1px solid #d7d7d7;
+  border-radius: 10px;
+  background-color: #fff;
+  color: #222;
+  box-sizing: border-box;
+  outline: none;
+}
+
+.searchInput:focus {
+  border-color: #8b0000;
+}
+
+.conversationList {
   flex: 1;
   min-height: 0;
   overflow-y: auto;
@@ -153,7 +224,8 @@ function cancelEditing(){
   gap: 8px;
   padding-right: 2px;
 }
-.conversationItem{
+
+.conversationItem {
   position: relative;
   width: 100%;
   border: 1px solid #dedede;
@@ -172,7 +244,8 @@ function cancelEditing(){
     box-shadow 250ms ease,
     transform 250ms ease;
 }
-.conversationItem.active{
+
+.conversationItem.active {
   border-color: #8b0000;
   background:
     linear-gradient(180deg, #fff8f8 0%, #fff2f2 100%);
@@ -180,11 +253,13 @@ function cancelEditing(){
     0 10px 24px rgba(139, 0, 0, 0.08),
     inset 3px 0 0 #8b0000;
 }
-.conversationInfo{
+
+.conversationInfo {
   min-width: 0;
   flex: 1;
 }
-.conversationTitle{
+
+.conversationTitle {
   margin: 0 0 4px;
   font-weight: 700;
   color: #222;
@@ -193,7 +268,8 @@ function cancelEditing(){
   text-overflow: ellipsis;
   user-select: none;
 }
-.conversationTitleInput{
+
+.conversationTitleInput {
   width: 100%;
   margin: 0 0 4px;
   padding: 6px 8px;
@@ -206,12 +282,14 @@ function cancelEditing(){
   outline: none;
   box-sizing: border-box;
 }
-.conversationMeta{
+
+.conversationMeta {
   margin: 0;
   font-size: 12px;
   color: #666;
 }
-.deleteButton{
+
+.deleteButton {
   flex-shrink: 0;
   width: 28px;
   height: 28px;
@@ -230,30 +308,43 @@ function cancelEditing(){
     background-color 220ms ease,
     color 220ms ease;
 }
-.conversationItem.active .deleteButton{
+
+.conversationItem.active .deleteButton {
   opacity: 1;
   pointer-events: auto;
   transform: translateY(0);
 }
-@media (width > 768px){
+
+.emptySearchText {
+  margin: 16px 0 0;
+  text-align: center;
+  color: #777;
+  font-size: 14px;
+}
+
+@media (width > 768px) {
   .newConversationButton:hover:not(:disabled) {
     background-color: #000;
     color: gold;
   }
-  .sidebarCloseButton:hover{
+
+  .sidebarCloseButton:hover {
     background-color: #efefef;
   }
-  .conversationItem:hover{
+
+  .conversationItem:hover {
     border-color: #8b0000;
     box-shadow: 0 8px 18px rgba(0, 0, 0, 0.06);
-    /* transform: translateY(-1px); */
+    transform: translateY(-1px);
   }
-  .conversationItem:hover .deleteButton{
+
+  .conversationItem:hover .deleteButton {
     opacity: 1;
     pointer-events: auto;
     transform: translateY(0);
   }
-  .deleteButton:hover{
+
+  .deleteButton:hover {
     background-color: #f3dede;
     color: #8b0000;
   }

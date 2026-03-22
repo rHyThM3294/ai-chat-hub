@@ -121,21 +121,20 @@ export const useChatStore = defineStore("chat", () => {
   }
   function updateTitleFromFirstUserMessage(conversationId: string){
     const target = conversations.value.find((item) => item.id === conversationId);
-    if (!target) return;
-    if (target.title !== "新對話") return;
+    if(!target) return;
+    if(target.title !== "新對話")return;
     const firstUserMessage = target.messages.find((m) => m.role === "user");
-    if (!firstUserMessage) return;
+    if(!firstUserMessage)return;
     target.title = firstUserMessage.content.slice(0, 18) || "未命名對話";
     target.updatedAt = Date.now();
   }
   function resetConversation(){
-    if (!activeConversation.value) return;
+    if(!activeConversation.value)return;
     activeConversation.value.messages = [];
     activeConversation.value.title = "新對話";
     activeConversation.value.updatedAt = Date.now();
     error.value = null;
   }
-  
   async function sendUserText(userText: string){
     const text = userText.trim();
     if (!text || sending.value) return;
@@ -207,6 +206,81 @@ export const useChatStore = defineStore("chat", () => {
       sending.value = false;
     }
   }
+  async function regenerateAssistantMessage(messageId: string){
+    if(!activeConversation.value)return;
+    const targetConversation = activeConversation.value;
+    const assistantIndex = targetConversation.messages.findIndex(
+      (msg) => msg.id === messageId && msg.role === "assistant"
+    );
+    if(assistantIndex === -1)return;
+    let userIndex = -1;
+    for(let i = assistantIndex - 1;i>= 0;i--){
+      const currentMessage = targetConversation.messages[i];
+      if(currentMessage && currentMessage.role === "user"){
+        userIndex = i;
+        break;
+      }
+    }
+    if(userIndex === -1)return;
+    const userMessage = targetConversation.messages[userIndex];
+    if(!userMessage)return;
+    const historyBeforeAssistant = targetConversation.messages.slice(0, assistantIndex);
+    sending.value = true;
+    error.value = null;
+    targetConversation.messages = [...historyBeforeAssistant];
+    targetConversation.updatedAt = Date.now();
+    try{
+      const p = providers[targetConversation.provider];
+      if(!p)throw new Error("Provider not found");
+      const input = {
+        conversationId:targetConversation.id,
+        provider:targetConversation.provider,
+        userText:userMessage.content,
+      };
+      const botMsg:ChatMessage = {
+        id:uid("a"),
+        role:"assistant",
+        content:"",
+        createdAt:Date.now(),
+        tokenCount:0,
+        isStreaming:true,
+      };
+      targetConversation.messages.push(botMsg);
+      targetConversation.updatedAt = Date.now();
+      if(p.stream){
+        await p.stream(input, historyBeforeAssistant, {
+          onToken(token){
+            botMsg.content += token;
+            botMsg.tokenCount = estimateTokens(botMsg.content);
+            targetConversation.updatedAt = Date.now();
+          },
+          onDone(){
+            botMsg.isStreaming = false;
+            botMsg.tokenCount = estimateTokens(botMsg.content);
+            targetConversation.updatedAt = Date.now();
+          },
+        });
+      }else{
+        const res = await p.send(input, historyBeforeAssistant);
+        botMsg.content = res.assistantText;
+        botMsg.tokenCount = estimateTokens(res.assistantText);
+        botMsg.isStreaming = false;targetConversation.updatedAt = Date.now();
+      }
+    }catch(e){
+      error.value = e instanceof Error ? e.message : "Unknown error";
+      const lastAssistant = [...targetConversation.messages]
+       .reverse()
+       .find((msg) => msg.role === "assistant" && msg.isStreaming);
+      if(lastAssistant){
+        lastAssistant.isStreaming = false;
+        lastAssistant.content = lastAssistant.content || "發生錯誤，請稍後再試一次。";
+        lastAssistant.tokenCount = estimateTokens(lastAssistant.content);
+      }
+      targetConversation.updatedAt = Date.now();
+    }finally{
+      sending.value = false;
+    }
+  }
   ensureActiveConversation();
   watch(
     [conversations, activeConversationId],
@@ -232,6 +306,7 @@ export const useChatStore = defineStore("chat", () => {
     deleteConversation,
     renameConversation,
     resetConversation,
+    regenerateAssistantMessage,
     sendUserText,
   };
 });

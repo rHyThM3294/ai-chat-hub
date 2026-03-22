@@ -374,6 +374,25 @@ onBeforeUnmount(() => {
   flex-direction: column;
   gap: 0.4em;
 }
+.messageActions{
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 6px;
+}
+.messageActionButton{
+  border: none;
+  border-radius: 8px;
+  padding: 6px 10px;
+  font-size: 12px;
+  cursor: pointer;
+  background-color: rgba(0, 0, 0, 0.08);
+  color: inherit;
+  transition: all 250ms ease;
+}
+.messageActionButton:disabled{
+  cursor: not-allowed;
+  opacity: 0.55;
+}
 .messageRow.isUser .allMessage{
   background-color: #8b0000;
   color: #ffffff;
@@ -496,6 +515,9 @@ onBeforeUnmount(() => {
   }
   .sidebarClose:hover {
     background-color: #efefef;
+  }
+  .messageActionButton:hover:not(:disabled){
+    background-color: rgba(0, 0, 0, 0.16);
   }
 }
 </style>
