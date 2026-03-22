@@ -321,19 +321,6 @@ onMounted(() => {
   max-width: 1100px;
   margin: 0 auto;
 }
-@media(width > 768px){
-  .hint{
-    font-size: 1.15em;
-  }
-  .newChat:hover:not(:disabled){
-    color: gold;
-    background-color: #000000;
-  }
-  .enterButton:hover:not(:disabled){
-    color: gold;
-    background-color: #000000;
-  }
-}
 @media (width <= 768px){
   .chatLayout{
     flex-direction: column;
@@ -347,6 +334,19 @@ onMounted(() => {
   .conversation{
     max-height: none;
     min-height: 50vh;
+  }
+}
+@media(width > 768px){
+  .hint{
+    font-size: 1.15em;
+  }
+  .newChat:hover:not(:disabled){
+    color: gold;
+    background-color: #000000;
+  }
+  .enterButton:hover:not(:disabled){
+    color: gold;
+    background-color: #000000;
   }
 }
 </style>
