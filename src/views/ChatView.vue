@@ -165,16 +165,11 @@ async function send(){
 }
 function syncViewportState(){
   isDesktop.value = window.innerWidth > 768;
-  sidebarOpen.value = isDesktop.value;
 }
 function openSidebar(){
   sidebarOpen.value = true;
 }
 function closeSidebar(){
-  if(isDesktop.value){
-    sidebarOpen.value = true;
-    return;
-  }
   sidebarOpen.value = false;
 }
 watch(
@@ -305,6 +300,7 @@ onBeforeUnmount(() => {
   align-items: center;
   gap: 1.25em;
   padding: 4.5em 0 1.5em;
+  transition: all ease 300ms;
 }
 .topBlock,.conversation,.user{
   width: min(92%, 1100px);
@@ -476,7 +472,6 @@ onBeforeUnmount(() => {
   }
   .sidebarPanel{
     width: 300px;
-    transform: translateX(0);
     box-shadow: none;
     border-right: 1px solid #ececec;
   }
@@ -484,9 +479,12 @@ onBeforeUnmount(() => {
     display: none;
   }
   .artificialIntelligence{
-    margin-left: 300px;
+    margin: 0;
     padding: 2em 0;
     gap: 2em;
+  }
+  .sidebarPanel.isOpen ~ .artificialIntelligence{
+    margin-left: 300px;
   }
   .conversation{
     min-height: 45vh;
