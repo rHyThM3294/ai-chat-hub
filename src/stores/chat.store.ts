@@ -135,6 +135,18 @@ export const useChatStore = defineStore("chat", () => {
     activeConversation.value.updatedAt = Date.now();
     error.value = null;
   }
+  function updateTitleFromFirstUserMessage(conversationId:string){
+    const target = conversations.value.find((item) => items.id === conversationed);
+    if(!target)return;
+    if(target.title !== "新對話")return;
+    const firstUserMessage = target.messages.find((m) => m.role === "user");
+    if(!firstUserMessage)return;
+    const cleanTitle = firstUserMessage.content
+      .replace(/\s+/g," ")
+      .trim()
+      .slice(0,18)
+    target.title = cleanTitle || "未命名對話";
+  }
   async function sendUserText(userText: string){
     const text = userText.trim();
     if (!text || sending.value) return;

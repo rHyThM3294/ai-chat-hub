@@ -20,17 +20,7 @@
       class="sidebarPanel"
       :class="{ isOpen: sidebarOpen }"
     >
-      <div class="sidebarPanelHeader">
-        <button
-          type="button"
-          class="sidebarClose"
-          @click="closeSidebar"
-          aria-label="關閉聊天室側欄"
-        >
-          ✕
-        </button>
-      </div>
-      <ConversationSidebar />
+      <ConversationSidebar @close-sidebar="closeSidebar" />
     </aside>
     <section class="artificialIntelligence">
       <header class="topBlock">

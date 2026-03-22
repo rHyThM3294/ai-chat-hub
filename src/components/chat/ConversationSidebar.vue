@@ -1,5 +1,18 @@
 <template>
   <aside class="conversationSidebar">
+    <div class="sidebarTopBar">
+      <p class="sidebarTitle">聊天室</p>
+
+      <button
+        type="button"
+        class="sidebarCloseButton"
+        @click="$emit('close-sidebar')"
+        aria-label="關閉聊天室側欄"
+      >
+        ✕
+      </button>
+    </div>
+
     <button
       type="button"
       class="newConversationButton"
@@ -7,6 +20,7 @@
     >
       + 新對話
     </button>
+
     <div class="conversationList">
       <button
         v-for="item in chat.conversations"
@@ -22,6 +36,7 @@
             {{ item.provider }} ・ {{ item.messages.length }} 則訊息
           </p>
         </div>
+
         <span
           class="deleteButton"
           @click.stop="chat.deleteConversation(item.id)"
@@ -32,12 +47,19 @@
     </div>
   </aside>
 </template>
+
 <script setup lang="ts">
 import { useChatStore } from "@/stores/chat.store";
+
+defineEmits<{
+  (e: "close-sidebar"): void;
+}>();
+
 const chat = useChatStore();
 </script>
+
 <style scoped>
-.conversationSidebar{
+.conversationSidebar {
   width: 100%;
   min-width: 0;
   height: 100%;
@@ -48,7 +70,35 @@ const chat = useChatStore();
   box-sizing: border-box;
   background-color: #fafafa;
 }
-.newConversationButton{
+
+.sidebarTopBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.sidebarTitle {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #222;
+}
+
+.sidebarCloseButton {
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+  border: none;
+  border-radius: 10px;
+  background-color: transparent;
+  color: #333;
+  font-size: 20px;
+  cursor: pointer;
+  transition: all ease 300ms;
+}
+
+.newConversationButton {
   width: 100%;
   min-height: 44px;
   border: none;
@@ -59,7 +109,8 @@ const chat = useChatStore();
   cursor: pointer;
   transition: all ease 300ms;
 }
-.conversationList{
+
+.conversationList {
   flex: 1;
   min-height: 0;
   overflow-y: auto;
@@ -68,10 +119,12 @@ const chat = useChatStore();
   gap: 8px;
   padding-right: 2px;
 }
-.conversationItem{
+
+.conversationItem {
+  position: relative;
   width: 100%;
   border: 1px solid #dedede;
-  border-radius: 12px;
+  border-radius: 14px;
   background-color: #fff;
   padding: 12px;
   display: flex;
@@ -80,18 +133,28 @@ const chat = useChatStore();
   gap: 10px;
   text-align: left;
   cursor: pointer;
-  transition: all ease 300ms;
-}
-.conversationItem.active{
-  border-color: #8b0000;
-  background-color: #fff5f5;
+  transition:
+    border-color 250ms ease,
+    background-color 250ms ease,
+    box-shadow 250ms ease,
+    transform 250ms ease;
 }
 
-.conversationInfo{
+.conversationItem.active {
+  border-color: #8b0000;
+  background:
+    linear-gradient(180deg, #fff8f8 0%, #fff2f2 100%);
+  box-shadow:
+    0 10px 24px rgba(139, 0, 0, 0.08),
+    inset 3px 0 0 #8b0000;
+}
+
+.conversationInfo {
   min-width: 0;
   flex: 1;
 }
-.conversationTitle{
+
+.conversationTitle {
   margin: 0 0 4px;
   font-weight: 700;
   color: #222;
@@ -99,25 +162,64 @@ const chat = useChatStore();
   overflow: hidden;
   text-overflow: ellipsis;
 }
-.conversationMeta{
+
+.conversationMeta {
   margin: 0;
   font-size: 12px;
   color: #666;
 }
-.deleteButton{
+
+.deleteButton {
   flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  border-radius: 8px;
   color: #666;
   cursor: pointer;
   line-height: 1;
-  padding-top: 2px;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(2px);
+  transition:
+    opacity 220ms ease,
+    transform 220ms ease,
+    background-color 220ms ease,
+    color 220ms ease;
 }
-@media (width > 768px){
-  .newConversationButton:hover:not(:disabled){
+
+.conversationItem.active .deleteButton {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateY(0);
+}
+
+@media (width > 768px) {
+  .newConversationButton:hover:not(:disabled) {
     background-color: #000;
     color: gold;
   }
-  .conversationItem:hover:not(:disabled){
+
+  .sidebarCloseButton:hover {
+    background-color: #efefef;
+  }
+
+  .conversationItem:hover {
     border-color: #8b0000;
+    box-shadow: 0 8px 18px rgba(0, 0, 0, 0.06);
+    transform: translateY(-1px);
+  }
+
+  .conversationItem:hover .deleteButton {
+    opacity: 1;
+    pointer-events: auto;
+    transform: translateY(0);
+  }
+
+  .deleteButton:hover {
+    background-color: #f3dede;
+    color: #8b0000;
   }
 }
 </style>
