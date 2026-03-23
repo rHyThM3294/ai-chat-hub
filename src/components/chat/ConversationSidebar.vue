@@ -2,7 +2,6 @@
   <aside class="conversationSidebar">
     <div class="sidebarTopBar">
       <p class="sidebarTitle">聊天室</p>
-
       <button
         type="button"
         class="sidebarCloseButton"
@@ -12,7 +11,6 @@
         ✕
       </button>
     </div>
-
     <button
       type="button"
       class="newConversationButton"
@@ -20,7 +18,6 @@
     >
       + 新對話
     </button>
-
     <div class="searchWrapper">
       <input
         v-model="searchText"
@@ -29,7 +26,6 @@
         placeholder="搜尋聊天室"
       />
     </div>
-
     <div class="conversationList">
       <button
         v-for="item in filteredConversations"
@@ -54,7 +50,6 @@
               @blur="saveEditing(item.id)"
             />
           </template>
-
           <template v-else>
             <p
               class="conversationTitle"
@@ -64,12 +59,10 @@
               {{ item.title }}
             </p>
           </template>
-
           <p class="conversationMeta">
-            {{ item.provider }} ・ {{ item.messages.length }} 則訊息
+            {{ item.provider }} ・ {{ item.messages.length }} 則訊息 ・ {{ formatTime(item.updatedAt) }}
           </p>
         </div>
-
         <span
           class="deleteButton"
           @click.stop="chat.deleteConversation(item.id)"
@@ -77,7 +70,6 @@
           ✕
         </span>
       </button>
-
       <p
         v-if="filteredConversations.length === 0"
         class="emptySearchText"
@@ -87,64 +79,60 @@
     </div>
   </aside>
 </template>
-
 <script setup lang="ts">
 import { computed, nextTick, ref } from "vue";
 import { useChatStore } from "@/stores/chat.store";
-
 defineEmits<{
   (e: "close-sidebar"): void;
 }>();
-
 const chat = useChatStore();
-
 const editingId = ref<string | null>(null);
 const editingTitle = ref("");
 const editingInputRef = ref<HTMLInputElement | null>(null);
 const searchText = ref("");
-
 const filteredConversations = computed(() => {
   const keyword = searchText.value.trim().toLowerCase();
-  if (!keyword) return chat.conversations;
-
-  return chat.conversations.filter((item) => {
-    return (
+  const sortedConversations = [...chat.conversations].sort(
+    (a, b) => b.updatedAt - a.updatedAt
+  );
+  if(!keyword) return sortedConversations;
+  return sortedConversations.filter((item) => {
+    return(
       item.title.toLowerCase().includes(keyword) ||
       item.provider.toLowerCase().includes(keyword)
     );
   });
 });
-
-function handleSelect(id: string) {
+function handleSelect(id: string){
   if (editingId.value) return;
   chat.switchConversation(id);
 }
-
-async function startEditing(id: string, title: string) {
+async function startEditing(id: string, title: string){
   editingId.value = id;
   editingTitle.value = title;
-
   await nextTick();
   editingInputRef.value?.focus();
   editingInputRef.value?.select();
 }
-
-function saveEditing(id: string) {
+function saveEditing(id: string){
   if (editingId.value !== id) return;
-
   chat.renameConversation(id, editingTitle.value);
   editingId.value = null;
   editingTitle.value = "";
 }
-
-function cancelEditing() {
+function cancelEditing(){
   editingId.value = null;
   editingTitle.value = "";
 }
+function formatTime(timestamp: number){
+  return new Date(timestamp).toLocaleTimeString("zh-TW", {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
 </script>
-
 <style scoped>
-.conversationSidebar {
+.conversationSidebar{
   width: 100%;
   min-width: 0;
   height: 100%;
@@ -155,22 +143,19 @@ function cancelEditing() {
   box-sizing: border-box;
   background-color: #fafafa;
 }
-
-.sidebarTopBar {
+.sidebarTopBar{
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
 }
-
-.sidebarTitle {
+.sidebarTitle{
   margin: 0;
   font-size: 0.95rem;
   font-weight: 700;
   color: #222;
 }
-
-.sidebarCloseButton {
+.sidebarCloseButton{
   width: 40px;
   height: 40px;
   flex-shrink: 0;
@@ -182,8 +167,7 @@ function cancelEditing() {
   cursor: pointer;
   transition: all ease 300ms;
 }
-
-.newConversationButton {
+.newConversationButton{
   width: 100%;
   min-height: 44px;
   border: none;
@@ -194,12 +178,10 @@ function cancelEditing() {
   cursor: pointer;
   transition: all ease 300ms;
 }
-
 .searchWrapper {
   width: 100%;
 }
-
-.searchInput {
+.searchInput{
   width: 100%;
   min-height: 42px;
   padding: 0 12px;
@@ -210,12 +192,10 @@ function cancelEditing() {
   box-sizing: border-box;
   outline: none;
 }
-
-.searchInput:focus {
+.searchInput:focus{
   border-color: #8b0000;
 }
-
-.conversationList {
+.conversationList{
   flex: 1;
   min-height: 0;
   overflow-y: auto;
@@ -224,8 +204,7 @@ function cancelEditing() {
   gap: 8px;
   padding-right: 2px;
 }
-
-.conversationItem {
+.conversationItem{
   position: relative;
   width: 100%;
   border: 1px solid #dedede;
@@ -244,8 +223,7 @@ function cancelEditing() {
     box-shadow 250ms ease,
     transform 250ms ease;
 }
-
-.conversationItem.active {
+.conversationItem.active{
   border-color: #8b0000;
   background:
     linear-gradient(180deg, #fff8f8 0%, #fff2f2 100%);
@@ -253,13 +231,11 @@ function cancelEditing() {
     0 10px 24px rgba(139, 0, 0, 0.08),
     inset 3px 0 0 #8b0000;
 }
-
-.conversationInfo {
+.conversationInfo{
   min-width: 0;
   flex: 1;
 }
-
-.conversationTitle {
+.conversationTitle{
   margin: 0 0 4px;
   font-weight: 700;
   color: #222;
@@ -268,8 +244,7 @@ function cancelEditing() {
   text-overflow: ellipsis;
   user-select: none;
 }
-
-.conversationTitleInput {
+.conversationTitleInput{
   width: 100%;
   margin: 0 0 4px;
   padding: 6px 8px;
