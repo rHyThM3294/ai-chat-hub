@@ -56,7 +56,7 @@
           v-for="m in chat.messages"
           :key="m.id"
           class="messageRow"
-          :class="{ isUser: m.role === 'user', isAssistant: m.role === 'assistant' }"
+          :class="{ isUser: m.role === 'user', isAssistant:m.role === 'assistant' }"
         >
           <div class="allMessage">
             <div class="messageBox">
@@ -71,6 +71,9 @@
             <MessageContent
               :content="m.content"
               :is-streaming="m.isStreaming"
+              :role="m.role"
+              :can-regenerate="m.role === 'assistant' && !m.isStreaming"
+              @regenerate="handleRegenerate(m)"
             />
           </div>
         </div>
@@ -106,8 +109,9 @@
   </main>
 </template>
 <script setup lang="ts">
-import { computed, nextTick, onMounted, onBeforeUnmount, ref, watch } from "vue";
+import { computed, nextTick, onMounted, onBeforeUnmount, ref, watch }from "vue";
 import { useChatStore } from "@/stores/chat.store";
+import type { ChatMessage } from "@/types/chat";
 import MessageContent from "@/components/chat/MessageContent.vue";
 import ConversationSidebar from "@/components/chat/ConversationSidebar.vue";
 const chat = useChatStore();
@@ -142,6 +146,10 @@ function handleKeydown(e: KeyboardEvent){
     e.preventDefault();
     send();
   }
+}
+function handleRegenerate(message:ChatMessage){
+  if(message.role !== "assistant")return;
+  chat.regenerateFromMessage?.(message.id);
 }
 async function send(){
   if (!canSend.value) return;

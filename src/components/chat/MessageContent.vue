@@ -1,12 +1,23 @@
 <template>
 <div class="messageContentWrap">
-  <div class="messageActions">
+  <div
+    v-if="role === 'assistant'"
+    class="messageActions"
+  >
     <button
       type="button"
       class="messageActionButton"
       @click="copyMessage"
     >
       {{ messageCopied ? "已複製" : "複製訊息" }}
+    </button>
+    <button
+      v-if="canRegenerate"
+      type="button"
+      class="messageActionButton"
+      @click="emit('regenerate')"
+    >
+      重新生成
     </button>
   </div>
   <div
@@ -23,7 +34,12 @@ import { renderMarkdown } from "@/utils/renderMarkdown";
 const props = defineProps<{
   content:string;
   isStreaming?:boolean;
+  role?: "user" | "assistant" | "system";
+  canRegenerate?:boolean;
 }>();
+const emit = defineEmits<{
+  (e:"regenerate"):void;
+}>()
 const html = computed(() => renderMarkdown(props.content));
 const contentRef = ref<HTMLElement | null>(null);
 const messageCopied = ref(false);
@@ -163,13 +179,11 @@ onBeforeUnmount(() => {
 .messageContent :deep(ol){
   padding: 0 0 0 1.2em;
 }
-
-.messageContent :deep(a) {
+.messageContent :deep(a){
   color: #8b0000;
   text-decoration: underline;
 }
-
-.messageContent.isStreaming::after {
+.messageContent.isStreaming::after{
   content: "";
   display: inline-block;
   width: 0.5em;
@@ -179,7 +193,6 @@ onBeforeUnmount(() => {
   background-color: currentColor;
   animation: blinkCursor 0.9s steps(1) infinite;
 }
-
 @keyframes blinkCursor{
   0%, 50%{
     opacity: 1;
