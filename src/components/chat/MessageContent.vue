@@ -119,7 +119,7 @@ onBeforeUnmount(() => {
   font-size: 12px;
   line-height: 1;
   cursor: pointer;
-  background-color: rgba(255, 255, 255, 0.14);
+  background-color:#ffffff;
   color: #000000;
   transition: all 300ms ease;
 }
@@ -139,7 +139,7 @@ onBeforeUnmount(() => {
   color: #f5f5f5;
 }
 
-.messageContent :deep(.codeCopyButton) {
+.messageContent :deep(.codeCopyButton){
   position: absolute;
   top: 10px;
   right: 10px;
@@ -153,16 +153,14 @@ onBeforeUnmount(() => {
   transition: all 250ms ease;
 }
 
-.messageContent :deep(code) {
+.messageContent :deep(code){
   font-family: Consolas, Monaco, monospace;
 }
-
-.messageContent :deep(p) {
+.messageContent :deep(p){
   margin: 0.45em 0;
 }
-
 .messageContent :deep(ul),
-.messageContent :deep(ol) {
+.messageContent :deep(ol){
   padding: 0 0 0 1.2em;
 }
 
