@@ -120,8 +120,8 @@ onBeforeUnmount(() => {
   line-height: 1;
   cursor: pointer;
   background-color: rgba(255, 255, 255, 0.14);
-  color: #fff;
-  transition: all 250ms ease;
+  color: #000000;
+  transition: all 300ms ease;
 }
 .messageContent{
   white-space: normal;
@@ -182,19 +182,17 @@ onBeforeUnmount(() => {
   animation: blinkCursor 0.9s steps(1) infinite;
 }
 
-@keyframes blinkCursor {
-  0%, 50% {
+@keyframes blinkCursor{
+  0%, 50%{
     opacity: 1;
   }
-  50.01%, 100% {
+  50.01%, 100%{
     opacity: 0;
   }
 }
-
-@media (width > 768px) {
-  .messageActionButton:hover,
-  .messageContent :deep(.codeCopyButton:hover) {
-    background-color: rgba(255, 255, 255, 0.26);
+@media(width > 768px){
+  .messageActionButton:hover,.messageContent :deep(.codeCopyButton:hover){
+    background-color: gold;
   }
 }
 </style>
