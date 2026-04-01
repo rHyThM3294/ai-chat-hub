@@ -1,9 +1,6 @@
 <template>
 <div class="messageContentWrap">
-  <div
-    v-if="role === 'assistant'"
-    class="messageActions"
-  >
+  <div class="messageActions">
     <button
       type="button"
       class="messageActionButton"
@@ -11,8 +8,9 @@
     >
       {{ messageCopied ? "已複製" : "複製訊息" }}
     </button>
+
     <button
-      v-if="canRegenerate"
+      v-if="role === 'assistant' && canRegenerate"
       type="button"
       class="messageActionButton"
       @click="emit('regenerate')"
