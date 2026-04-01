@@ -149,7 +149,7 @@ function handleKeydown(e: KeyboardEvent){
 }
 function handleRegenerate(message:ChatMessage){
   if(message.role !== "assistant")return;
-  chat.regenerateFromMessage?.(message.id);
+  chat.regenerateAssistantMessage?.(message.id);
 }
 async function send(){
   if (!canSend.value) return;
