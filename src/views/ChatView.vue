@@ -56,7 +56,7 @@
           v-for="m in chat.messages"
           :key="m.id"
           class="messageRow"
-          :class="{ isUser: m.role === 'user', isAssistant:m.role === 'assistant' }"
+          :class="{ isUser: m.role === 'user', isAssistant: m.role === 'assistant' }"
         >
           <div class="allMessage">
             <div class="messageBox">
@@ -68,13 +68,43 @@
                 </span>
               </div>
             </div>
-            <MessageContent
-              :content="m.content"
-              :is-streaming="m.isStreaming"
-              :role="m.role"
-              :can-regenerate="m.role === 'assistant' && !m.isStreaming"
-              @regenerate="handleRegenerate(m)"
-            />
+            <template v-if="editingMessageId === m.id">
+              <div class="messageEditBox">
+                <textarea
+                  v-model="editingContent"
+                  class="messageEditTextarea"
+                  rows="5"
+                ></textarea>
+                <div class="messageEditActions">
+                  <button
+                    type="button"
+                    class="messageEditButton secondary"
+                    @click="cancelEditMessage"
+                  >
+                    取消
+                  </button>
+                  <button
+                    type="button"
+                    class="messageEditButton primary"
+                    :disabled="isSavingEdit"
+                    @click="saveEditMessage(m)"
+                  >
+                    {{ isSavingEdit ? "重新送出中..." : "儲存並重新送出" }}
+                  </button>
+                </div>
+              </div>
+            </template>
+            <template v-else>
+              <MessageContent
+                :content="m.content"
+                :is-streaming="m.isStreaming"
+                :role="m.role"
+                :can-edit="m.role === 'user' && !m.isStreaming"
+                :can-regenerate="m.role === 'assistant' && !m.isStreaming"
+                @edit="startEditMessage(m)"
+                @regenerate="handleRegenerate(m)"
+              />
+            </template>
           </div>
         </div>
         <p v-if="chat.error" class="errorMessage">錯誤：{{ chat.error }}</p>
@@ -120,6 +150,9 @@ const textareaRef = ref<HTMLTextAreaElement | null>(null);
 const conversationRef = ref<HTMLElement | null>(null);
 const sidebarOpen = ref(false);
 const isDesktop = ref(false);
+const editingMessageId = ref<string | null>(null);
+const editingContent = ref("");
+const isSavingEdit = ref(false);
 const canSend = computed(() => !chat.sending && input.value.trim().length > 0);
 function resizeTextarea(){
   const el = textareaRef.value;
@@ -150,6 +183,29 @@ function handleKeydown(e: KeyboardEvent){
 function handleRegenerate(message:ChatMessage){
   if(message.role !== "assistant")return;
   chat.regenerateAssistantMessage?.(message.id);
+}
+function startEditMessage(message: ChatMessage){
+  if (message.role !== "user") return;
+  editingMessageId.value = message.id;
+  editingContent.value = message.content;
+}
+function cancelEditMessage(){
+  editingMessageId.value = null;
+  editingContent.value = "";
+}
+async function saveEditMessage(message: ChatMessage){
+  const nextContent = editingContent.value.trim();
+  if (!nextContent) return;
+  if (message.role !== "user") return;
+  try{
+    isSavingEdit.value = true;
+    await chat.editUserMessageAndResend(message.id, nextContent);
+    cancelEditMessage();
+  }catch (error){
+    console.error("編輯訊息後重新送出失敗：", error);
+  }finally{
+    isSavingEdit.value = false;
+  }
 }
 async function send(){
   if (!canSend.value) return;
@@ -318,7 +374,7 @@ onBeforeUnmount(() => {
 .titleGroup{
   min-width: 0;
 }
-.titleText {
+.titleText{
   margin: 0;
   font-size: 1.5rem;
 }
@@ -418,6 +474,53 @@ onBeforeUnmount(() => {
   gap: 1em;
   font-weight: 700;
 }
+.messageEditBox{
+  display: flex;
+  flex-direction: column;
+  gap: 0.75em;
+}
+.messageEditTextarea{
+  width: 100%;
+  min-height: 120px;
+  line-height: 1.6;
+  padding: 0.85em 1em;
+  font-size: 0.95rem;
+  border: 1px solid rgba(0, 0, 0, 0.14);
+  border-radius: 12px;
+  resize: vertical;
+  box-sizing: border-box;
+  outline: none;
+  background-color: #ffffff;
+  color: #111111;
+}
+.messageEditTextarea:focus{
+  border-color: #8b0000;
+}
+.messageEditActions{
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5em;
+}
+.messageEditButton{
+  border: none;
+  border-radius: 10px;
+  padding: 0.65em 1em;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 250ms ease;
+}
+.messageEditButton.secondary{
+  background-color: rgba(0, 0, 0, 0.08);
+  color: #222222;
+}
+.messageEditButton.primary{
+  background-color: #8b0000;
+  color: #ffffff;
+}
+.messageEditButton:disabled{
+  opacity: 0.65;
+  cursor: not-allowed;
+}
 .messageMeta{
   display: flex;
   gap: 0.5em;
@@ -509,6 +612,13 @@ onBeforeUnmount(() => {
   }
   .allMessage{
     max-width: 70%;
+  }
+  .messageEditButton.secondary:hover:not(:disabled){
+    background-color: rgba(0, 0, 0, 0.14);
+  }
+  .messageEditButton.primary:hover:not(:disabled){
+    background-color: #000000;
+    color: gold;
   }
   .hint{
     font-size: 1.15em;

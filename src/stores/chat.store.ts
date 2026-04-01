@@ -136,144 +136,193 @@ export const useChatStore = defineStore("chat", () => {
     error.value = null;
   }
   async function sendUserText(userText: string){
-    const text = userText.trim();
-    if (!text || sending.value) return;
-    if (!activeConversation.value) return;
+      const text = userText.trim();
+      if (!text || sending.value) return;
+      if (!activeConversation.value) return;
+      sending.value = true;
+      error.value = null;
+      const targetConversation = activeConversation.value;
+      const userMsg: ChatMessage = {
+        id: uid("u"),
+        role: "user",
+        content: text,
+        createdAt: Date.now(),
+        tokenCount: estimateTokens(text),
+      };
+      targetConversation.messages.push(userMsg);
+      targetConversation.updatedAt = Date.now();
+      updateTitleFromFirstUserMessage(targetConversation.id);
+      try{
+        const p = providers[targetConversation.provider];
+        if (!p) throw new Error("Provider not found");
+        const input = {
+          conversationId: targetConversation.id,
+          provider: targetConversation.provider,
+          userText: text,
+        };
+        const botMsg: ChatMessage = {
+          id: uid("a"),
+          role: "assistant",
+          content: "",
+          createdAt: Date.now(),
+          tokenCount: 0,
+          isStreaming: true,
+        };
+        targetConversation.messages.push(botMsg);
+        targetConversation.updatedAt = Date.now();
+        if (p.stream){
+          await p.stream(input, targetConversation.messages,{
+            onToken(token){
+              botMsg.content += token;
+              botMsg.tokenCount = estimateTokens(botMsg.content);
+              targetConversation.updatedAt = Date.now();
+            },
+            onDone(){
+              botMsg.isStreaming = false;
+              botMsg.tokenCount = estimateTokens(botMsg.content);
+              targetConversation.updatedAt = Date.now();
+            },
+          });
+        }else{
+          const res = await p.send(input, targetConversation.messages);
+          botMsg.content = res.assistantText;
+          botMsg.tokenCount = estimateTokens(res.assistantText);
+          botMsg.isStreaming = false;
+          targetConversation.updatedAt = Date.now();
+        }
+      }catch(e){
+        error.value = e instanceof Error ? e.message : "Unknown error";
+        const lastAssistant = [...targetConversation.messages]
+          .reverse()
+          .find((msg) => msg.role === "assistant" && msg.isStreaming);
+        if(lastAssistant){
+          lastAssistant.isStreaming = false;
+          lastAssistant.content =
+            lastAssistant.content || "發生錯誤，請稍後再試一次。";
+          lastAssistant.tokenCount = estimateTokens(lastAssistant.content);
+        }
+        targetConversation.updatedAt = Date.now();
+      }finally{
+        sending.value = false;
+      }
+  }
+  async function generateAssistantReply(
+    targetConversation: ChatConversation,
+    history: ChatMessage[],
+    userText: string
+  ){
+    const p = providers[targetConversation.provider];
+    if (!p) throw new Error("Provider not found");
+    const input = {
+      conversationId: targetConversation.id,
+      provider: targetConversation.provider,
+      userText,
+    };
+    const botMsg: ChatMessage = {
+      id: uid("a"),
+      role: "assistant",
+      content: "",
+      createdAt: Date.now(),
+      tokenCount: 0,
+      isStreaming: true,
+    };
+    targetConversation.messages.push(botMsg);
+    targetConversation.updatedAt = Date.now();
+    if (p.stream){
+      await p.stream(input, history, {
+        onToken(token){
+          botMsg.content += token;
+          botMsg.tokenCount = estimateTokens(botMsg.content);
+          targetConversation.updatedAt = Date.now();
+        },
+        onDone(){
+          botMsg.isStreaming = false;
+          botMsg.tokenCount = estimateTokens(botMsg.content);
+          targetConversation.updatedAt = Date.now();
+        },
+      });
+    }else{
+      const res = await p.send(input, history);
+      botMsg.content = res.assistantText;
+      botMsg.tokenCount = estimateTokens(res.assistantText);
+      botMsg.isStreaming = false;
+      targetConversation.updatedAt = Date.now();
+    }
+  }
+  async function editUserMessageAndResend(messageId: string, newContent: string){
+    const conversation = activeConversation.value;
+    if (!conversation || sending.value) return;
+    const nextContent = newContent.trim();
+    if (!nextContent) return;
+    const index = conversation.messages.findIndex((item) => item.id === messageId);
+    if (index === -1) return;
+    const targetMessage = conversation.messages[index];
+    if (!targetMessage || targetMessage.role !== "user") return;
     sending.value = true;
     error.value = null;
-    const targetConversation = activeConversation.value;
-    const userMsg: ChatMessage = {
-      id: uid("u"),
-      role: "user",
-      content: text,
-      createdAt: Date.now(),
-      tokenCount: estimateTokens(text),
-    };
-    targetConversation.messages.push(userMsg);
-    targetConversation.updatedAt = Date.now();
-    updateTitleFromFirstUserMessage(targetConversation.id);
+    targetMessage.content = nextContent;
+    targetMessage.createdAt = Date.now();
+    targetMessage.tokenCount = estimateTokens(nextContent);
+    conversation.messages.splice(index + 1);
+    conversation.updatedAt = Date.now();
     try{
-      const p = providers[targetConversation.provider];
-      if (!p) throw new Error("Provider not found");
-      const input = {
-        conversationId: targetConversation.id,
-        provider: targetConversation.provider,
-        userText: text,
-      };
-      const botMsg: ChatMessage = {
-        id: uid("a"),
-        role: "assistant",
-        content: "",
-        createdAt: Date.now(),
-        tokenCount: 0,
-        isStreaming: true,
-      };
-      targetConversation.messages.push(botMsg);
-      targetConversation.updatedAt = Date.now();
-      if (p.stream){
-        await p.stream(input, targetConversation.messages,{
-          onToken(token){
-            botMsg.content += token;
-            botMsg.tokenCount = estimateTokens(botMsg.content);
-            targetConversation.updatedAt = Date.now();
-          },
-          onDone(){
-            botMsg.isStreaming = false;
-            botMsg.tokenCount = estimateTokens(botMsg.content);
-            targetConversation.updatedAt = Date.now();
-          },
-        });
-      }else{
-        const res = await p.send(input, targetConversation.messages);
-        botMsg.content = res.assistantText;
-        botMsg.tokenCount = estimateTokens(res.assistantText);
-        botMsg.isStreaming = false;
-        targetConversation.updatedAt = Date.now();
-      }
-    } catch(e){
+      const history = [...conversation.messages];
+      await generateAssistantReply(conversation, history, nextContent);
+      updateTitleFromFirstUserMessage(conversation.id);
+    }catch(e){
       error.value = e instanceof Error ? e.message : "Unknown error";
-      const lastAssistant = [...targetConversation.messages]
+      const lastAssistant = [...conversation.messages]
         .reverse()
         .find((msg) => msg.role === "assistant" && msg.isStreaming);
-      if(lastAssistant){
+      if (lastAssistant){
         lastAssistant.isStreaming = false;
         lastAssistant.content =
           lastAssistant.content || "發生錯誤，請稍後再試一次。";
         lastAssistant.tokenCount = estimateTokens(lastAssistant.content);
       }
-      targetConversation.updatedAt = Date.now();
+      conversation.updatedAt = Date.now();
     }finally{
       sending.value = false;
     }
   }
   async function regenerateAssistantMessage(messageId: string){
-    if(!activeConversation.value)return;
+    if (!activeConversation.value || sending.value) return;
     const targetConversation = activeConversation.value;
     const assistantIndex = targetConversation.messages.findIndex(
       (msg) => msg.id === messageId && msg.role === "assistant"
     );
-    if(assistantIndex === -1)return;
+    if (assistantIndex === -1) return;
     let userIndex = -1;
-    for(let i = assistantIndex - 1;i>= 0;i--){
+    for (let i = assistantIndex - 1; i >= 0; i--){
       const currentMessage = targetConversation.messages[i];
-      if(currentMessage && currentMessage.role === "user"){
+      if (currentMessage && currentMessage.role === "user"){
         userIndex = i;
         break;
       }
     }
-    if(userIndex === -1)return;
+    if (userIndex === -1) return;
     const userMessage = targetConversation.messages[userIndex];
-    if(!userMessage)return;
+    if (!userMessage) return;
     const historyBeforeAssistant = targetConversation.messages.slice(0, assistantIndex);
     sending.value = true;
     error.value = null;
     targetConversation.messages = [...historyBeforeAssistant];
     targetConversation.updatedAt = Date.now();
     try{
-      const p = providers[targetConversation.provider];
-      if(!p)throw new Error("Provider not found");
-      const input = {
-        conversationId:targetConversation.id,
-        provider:targetConversation.provider,
-        userText:userMessage.content,
-      };
-      const botMsg:ChatMessage = {
-        id:uid("a"),
-        role:"assistant",
-        content:"",
-        createdAt:Date.now(),
-        tokenCount:0,
-        isStreaming:true,
-      };
-      targetConversation.messages.push(botMsg);
-      targetConversation.updatedAt = Date.now();
-      if(p.stream){
-        await p.stream(input, historyBeforeAssistant, {
-          onToken(token){
-            botMsg.content += token;
-            botMsg.tokenCount = estimateTokens(botMsg.content);
-            targetConversation.updatedAt = Date.now();
-          },
-          onDone(){
-            botMsg.isStreaming = false;
-            botMsg.tokenCount = estimateTokens(botMsg.content);
-            targetConversation.updatedAt = Date.now();
-          },
-        });
-      }else{
-        const res = await p.send(input, historyBeforeAssistant);
-        botMsg.content = res.assistantText;
-        botMsg.tokenCount = estimateTokens(res.assistantText);
-        botMsg.isStreaming = false;targetConversation.updatedAt = Date.now();
-      }
+      await generateAssistantReply(
+        targetConversation,
+        historyBeforeAssistant,
+        userMessage.content
+      );
     }catch(e){
       error.value = e instanceof Error ? e.message : "Unknown error";
       const lastAssistant = [...targetConversation.messages]
-       .reverse()
-       .find((msg) => msg.role === "assistant" && msg.isStreaming);
-      if(lastAssistant){
+        .reverse()
+        .find((msg) => msg.role === "assistant" && msg.isStreaming);
+      if (lastAssistant){
         lastAssistant.isStreaming = false;
-        lastAssistant.content = lastAssistant.content || "發生錯誤，請稍後再試一次。";
+        lastAssistant.content =
+          lastAssistant.content || "發生錯誤，請稍後再試一次。";
         lastAssistant.tokenCount = estimateTokens(lastAssistant.content);
       }
       targetConversation.updatedAt = Date.now();
@@ -307,6 +356,7 @@ export const useChatStore = defineStore("chat", () => {
     renameConversation,
     resetConversation,
     regenerateAssistantMessage,
+    editUserMessageAndResend,
     sendUserText,
   };
 });

@@ -1,43 +1,53 @@
 <template>
-<div class="messageContentWrap">
-  <div class="messageActions">
-    <button
-      type="button"
-      class="messageActionButton"
-      @click="copyMessage"
-    >
-      {{ messageCopied ? "已複製" : "複製訊息" }}
-    </button>
-
-    <button
-      v-if="role === 'assistant' && canRegenerate"
-      type="button"
-      class="messageActionButton"
-      @click="emit('regenerate')"
-    >
-      重新生成
-    </button>
+  <div class="messageContentWrap">
+    <div class="messageActions">
+      <button
+        type="button"
+        class="messageActionButton"
+        @click="copyMessage"
+      >
+        {{ messageCopied ? "已複製" : "複製訊息" }}
+      </button>
+      <button
+        v-if="role === 'user' && canEdit"
+        type="button"
+        class="messageActionButton"
+        @click="emit('edit')"
+      >
+        編輯
+      </button>
+      <button
+        v-if="role === 'assistant' && canRegenerate"
+        type="button"
+        class="messageActionButton"
+        @click="emit('regenerate')"
+      >
+        重新生成
+      </button>
+    </div>
+    <div
+      ref="contentRef"
+      class="messageContent markdownBody"
+      :class="{ isStreaming }"
+      v-html="html"
+    ></div>
   </div>
-  <div
-    ref="contentRef" 
-    class="messageContent markdownBody"
-    :class="{ isStreaming }"
-    v-html="html"
-  ></div>
-</div>
 </template>
 <script setup lang="ts">
 import{ computed, nextTick, onBeforeUnmount, ref ,watch }from "vue";
 import { renderMarkdown } from "@/utils/renderMarkdown";
 const props = defineProps<{
-  content:string;
-  isStreaming?:boolean;
+  content: string;
+  isStreaming?: boolean;
   role?: "user" | "assistant" | "system";
-  canRegenerate?:boolean;
+  canRegenerate?: boolean;
+  canEdit?: boolean;
 }>();
+
 const emit = defineEmits<{
-  (e:"regenerate"):void;
-}>()
+  (e: "regenerate"): void;
+  (e: "edit"): void;
+}>();
 const html = computed(() => renderMarkdown(props.content));
 const contentRef = ref<HTMLElement | null>(null);
 const messageCopied = ref(false);
