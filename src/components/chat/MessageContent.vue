@@ -213,10 +213,10 @@ onBeforeUnmount(() => {
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  background-color: rgba(255, 255, 255, 0.08);
-  color: #fff;
+  background-color: rgb(255, 255, 255);
+  color: #000000;
   font-size: 14px;
-  transition: all 200ms ease;
+  transition: all 300ms ease;
 }
 .iconButton i{
   pointer-events: none;
@@ -237,7 +237,7 @@ onBeforeUnmount(() => {
     background-color: gold;
   }
   .iconButton:hover{
-    background-color: rgba(255, 255, 255, 0.18);
+    background-color:gold;
     transform: translateY(-1px);
   }
 }
