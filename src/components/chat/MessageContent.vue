@@ -5,24 +5,27 @@
         type="button"
         class="messageActionButton"
         @click="copyMessage"
+        title="複製訊息"
       >
-        {{ messageCopied ? "已複製" : "複製訊息" }}
+        <i :class="messageCopied ? 'fa-solid fa-check' : 'fa-regular fa-copy'"></i>
       </button>
       <button
         v-if="role === 'user' && canEdit"
         type="button"
         class="messageActionButton"
         @click="emit('edit')"
+        title="編輯訊息"
       >
-        編輯
+        <i class="fa-solid fa-pen"></i>
       </button>
       <button
         v-if="role === 'assistant' && canRegenerate"
         type="button"
-        class="messageActionButton"
+        class="iconButton"
         @click="emit('regenerate')"
+        title="重新生成"
       >
-        重新生成
+        <i class="fa-solid fa-rotate-right"></i>
       </button>
     </div>
     <div
@@ -201,6 +204,26 @@ onBeforeUnmount(() => {
   background-color: currentColor;
   animation: blinkCursor 0.9s steps(1) infinite;
 }
+.iconButton{
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  background-color: rgba(255, 255, 255, 0.08);
+  color: #fff;
+  font-size: 14px;
+  transition: all 200ms ease;
+}
+.iconButton i{
+  pointer-events: none;
+}
+.iconButton:active{
+  transform: scale(0.9);
+}
 @keyframes blinkCursor{
   0%, 50%{
     opacity: 1;
@@ -212,6 +235,10 @@ onBeforeUnmount(() => {
 @media(width > 768px){
   .messageActionButton:hover,.messageContent :deep(.codeCopyButton:hover){
     background-color: gold;
+  }
+  .iconButton:hover{
+    background-color: rgba(255, 255, 255, 0.18);
+    transform: translateY(-1px);
   }
 }
 </style>
