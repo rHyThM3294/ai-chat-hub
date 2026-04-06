@@ -115,7 +115,6 @@
             ref="textareaRef"
             v-model="input"
             class="userText"
-            :disabled="chat.sending"
             rows="1"
             enterkeyhint="send"
             autocomplete="off"
@@ -128,10 +127,10 @@
           <button
             type="button"
             class="enterButton"
-            :disabled="!canSend"
-            @click="send"
+            :disabled="!chat.sending && !canSend"
+            @click="chat.sending ? chat.stopGenerating() : send()"
           >
-            {{ chat.sending ? "送出中..." : "送出" }}
+            {{ chat.sending ? "停止" : "送出" }}
           </button>
         </div>
       </footer>
@@ -153,7 +152,7 @@ const isDesktop = ref(false);
 const editingMessageId = ref<string | null>(null);
 const editingContent = ref("");
 const isSavingEdit = ref(false);
-const canSend = computed(() => !chat.sending && input.value.trim().length > 0);
+const canSend = computed(() => input.value.trim().length > 0 && !chat.sending);
 function resizeTextarea(){
   const el = textareaRef.value;
   if (!el) return;
@@ -177,6 +176,10 @@ function handleKeydown(e: KeyboardEvent){
   if(e.key === "Enter" && e.shiftKey) return;
   if(e.key === "Enter" && !e.shiftKey){
     e.preventDefault();
+    if(chat.sending){
+      chat.stopGenerating();
+      return;
+    }
     send();
   }
 }
