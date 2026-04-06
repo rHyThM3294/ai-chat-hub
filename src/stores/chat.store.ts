@@ -7,7 +7,6 @@ import { estimateTokens } from "@/utils/token";
 import { mockProvider } from "@/providers/mock";
 import { openaiProvider } from "@/providers/openai";
 import { groqProvider } from "@/providers/groq";
-import { text } from "stream/consumers";
 
 const providers: Partial<Record<ProviderId, ChatProvider>> = {
   mock: mockProvider,
@@ -16,7 +15,6 @@ const providers: Partial<Record<ProviderId, ChatProvider>> = {
 };
 const STORAGE_KEY = "ai-chat-hub-history";
 const currentAbortController = ref<AbortController | null>(null);
-const canStop = computed(() => sending.value);
 interface PersistedChatState{
   activeConversationId: string;
   conversations: ChatConversation[];
@@ -55,6 +53,7 @@ export const useChatStore = defineStore("chat", () => {
     persisted?.activeConversationId ?? (conversations.value[0]?.id ?? "")
   );
   const sending = ref(false);
+  const canStop = computed(() => sending.value);
   const error = ref<string | null>(null);
   const activeConversation = computed(() => {
     return (
@@ -145,9 +144,9 @@ export const useChatStore = defineStore("chat", () => {
     return error instanceof DOMException && error.name === "AbortError";
   }
   async function sendUserText(userText:string){
-    const txet = userText.trim();
-    if(!text|| sending.value)return;
-    if(!activeConversation.value)return;
+    const text = userText.trim();
+    if(!text || sending.value) return;
+    if(!activeConversation.value) return;
     sending.value = true;
     error.value = null;
     const controller = new AbortController();
@@ -211,8 +210,8 @@ export const useChatStore = defineStore("chat", () => {
     }catch(e){
       if(isAbortError(e)){
         const lastAssistant = [...targetConversation.messages]
-        .reverse()
-        .find((msg) => msg.role === "assistant" && msg.isStreaming);
+          .reverse()
+          .find((msg) => msg.role === "assistant" && msg.isStreaming);
         if(lastAssistant){
           lastAssistant.isStreaming = false;
           lastAssistant.tokenCount = estimateTokens(lastAssistant.content);
@@ -221,13 +220,13 @@ export const useChatStore = defineStore("chat", () => {
         return;
       }
       error.value = e instanceof Error ? e.message : "Unknown error";
-      const lastAssisttant = [...targetConversation.messages]
+      const lastAssistant = [...targetConversation.messages]
         .reverse()
         .find((msg) => msg.role === "assistant" && msg.isStreaming);
-        if(lastAssisttant){
-          lastAssisttant.isStreaming = false;
-          lastAssisttant.content = lastAssisttant.content || "發生錯誤，請稍後再試一次。"
-          lastAssisttant.tokenCount = estimateTokens(lastAssisttant.content);
+        if(lastAssistant){
+          lastAssistant.isStreaming = false;
+          lastAssistant.content = lastAssistant.content || "發生錯誤，請稍後再試一次。"
+          lastAssistant.tokenCount = estimateTokens(lastAssistant.content);
         }
         targetConversation.updatedAt = Date.now();
     }finally{
@@ -260,7 +259,7 @@ export const useChatStore = defineStore("chat", () => {
       isStreaming:true,
     };
     targetConversation.messages.push(botMsg);
-    targetConversation.updatedAt = Date.now;
+    targetConversation.updatedAt = Date.now();
     if(p.stream){
       await p.stream(input,history,{
         signal:controller.signal,
