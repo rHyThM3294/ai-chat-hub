@@ -6,14 +6,14 @@ export const config = {
   },
 };
 // 共用函數：轉換訊息格式
-function transformMessages(messages: ChatMessage[]) {
+function transformMessages(messages: ChatMessage[]){
   return messages.map((m) => ({
     role: m.role,
     content: m.content,
   }));
 }
-export default async function handler(req: any, res: any) {
-  try {
+export default async function handler(req: any, res: any){
+  try{
     // 1. 檢查 HTTP 方法
     if (req.method !== "POST") {
       return res.status(405).json({ error: "Method Not Allowed" });
@@ -59,6 +59,7 @@ export default async function handler(req: any, res: any) {
       max_tokens: 1000,
       stream: true,
     });
+
     for await (const chunk of streamResponse) {
       const token = chunk.choices[0]?.delta?.content || "";
       if (token) {
