@@ -11,13 +11,13 @@ export const mockProvider: ChatProvider = {
     const lastUser = input.userText.trim();
     const turns = history.filter((m) => m.role !== "system").length;
     return{
-      assistantText: `(Mock 回覆）你說：「${lastUser}」。目前對話訊息數：${turns}。`,
+      assistantText: `(Mock 回覆)你說：「${lastUser}」。目前對話訊息數：${turns}。`,
     };
   },
   async stream(input: ChatSendInput, history: ChatMessage[], handlers){
     const lastUser = input.userText.trim();
     const turns = history.filter((m) => m.role !== "system").length;
-    const fullText = `(Mock 回覆）你說：「${lastUser}」。目前對話訊息數：${turns}。`;
+    const fullText = `(Mock 回覆)你說：「${lastUser}」。目前對話訊息數：${turns}。`;
     let index = 0;
     while(index < fullText.length){
       if(handlers.signal?.aborted){

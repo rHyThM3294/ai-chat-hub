@@ -14,7 +14,7 @@ const providers: Partial<Record<ProviderId, ChatProvider>> = {
   groq: groqProvider,
 };
 const STORAGE_KEY = "ai-chat-hub-history";
-const currentAbortController = ref<AbortController | null>(null);
+
 interface PersistedChatState{
   activeConversationId: string;
   conversations: ChatConversation[];
@@ -53,6 +53,7 @@ export const useChatStore = defineStore("chat", () => {
     persisted?.activeConversationId ?? (conversations.value[0]?.id ?? "")
   );
   const sending = ref(false);
+  const currentAbortController = ref<AbortController | null>(null);
   const canStop = computed(() => sending.value);
   const error = ref<string | null>(null);
   const activeConversation = computed(() => {
@@ -168,7 +169,7 @@ export const useChatStore = defineStore("chat", () => {
       const input = {
         conversationId:targetConversation.id,
         provider:targetConversation.provider,
-        userText:text,
+        userText,
       };
       const botMsg:ChatMessage = {
         id:uid("a"),
@@ -181,7 +182,8 @@ export const useChatStore = defineStore("chat", () => {
       targetConversation.messages.push(botMsg);
       targetConversation.updatedAt = Date.now();
       if(p.stream){
-        await p.stream(input,targetConversation.messages,{
+        const history = [...targetConversation.messages];
+        await p.stream(input,history,{
           signal:controller.signal,
           onToken(token){
             botMsg.content += token;
@@ -237,65 +239,71 @@ export const useChatStore = defineStore("chat", () => {
     }
   }
   async function generateAssistantReply(
-    targetConversation:ChatConversation,
-    history:ChatMessage[],
-    userText:string
+    targetConversation: ChatConversation,
+    history: ChatMessage[],
+    userText: string
   ){
     const p = providers[targetConversation.provider];
     if(!p)throw new Error("Provider not found");
     const controller = new AbortController();
     currentAbortController.value = controller;
     const input = {
-      conversationId:targetConversation.id,
-      provider:targetConversation.provider,
+      conversationId: targetConversation.id,
+      provider: targetConversation.provider,
       userText,
     };
-    const botMsg:ChatMessage = {
-      id:uid("a"),
-      role:"assistant",
-      content:"",
-      createdAt:Date.now(),
-      tokenCount:0,
-      isStreaming:true,
+    const botMsg: ChatMessage = {
+      id: uid("a"),
+      role: "assistant",
+      content: "",
+      createdAt: Date.now(),
+      tokenCount: 0,
+      isStreaming: true,
     };
     targetConversation.messages.push(botMsg);
     targetConversation.updatedAt = Date.now();
-    if(p.stream){
-      await p.stream(input,history,{
-        signal:controller.signal,
-        onToken(token){
-          botMsg.content += token;
-          botMsg.tokenCount = estimateTokens(botMsg.content);
-          targetConversation.updatedAt = Date.now();
-        },
-        onDone(){
-          botMsg.isStreaming = false;
-          botMsg.tokenCount = estimateTokens(botMsg.content);
-          targetConversation.updatedAt = Date.now();
-        },
-        onAbort(){
-          botMsg.isStreaming = false;
-          botMsg.tokenCount = estimateTokens(botMsg.content);
-          targetConversation.updatedAt = Date.now();
-        },
-      });
-    }else{
-      const res = await p.send(input,history);
-      botMsg.content = res.assistantText;
-      botMsg.tokenCount = estimateTokens(res.assistantText);
-      botMsg.isStreaming = false;
-      targetConversation.updatedAt = Date.now();
+    try{
+      if(p.stream){
+        await p.stream(input, history, {
+          signal: controller.signal,
+          onToken(token){
+            botMsg.content += token;
+            botMsg.tokenCount = estimateTokens(botMsg.content);
+            targetConversation.updatedAt = Date.now();
+          },
+          onDone(){
+            botMsg.isStreaming = false;
+            botMsg.tokenCount = estimateTokens(botMsg.content);
+            targetConversation.updatedAt = Date.now();
+          },
+          onAbort(){
+            botMsg.isStreaming = false;
+            botMsg.tokenCount = estimateTokens(botMsg.content);
+            targetConversation.updatedAt = Date.now();
+          },
+        });
+      }else{
+        const res = await p.send(input, history);
+        botMsg.content = res.assistantText;
+        botMsg.tokenCount = estimateTokens(res.assistantText);
+        botMsg.isStreaming = false;
+        targetConversation.updatedAt = Date.now();
+      }
+    }finally{
+      if(currentAbortController.value === controller){
+        currentAbortController.value = null;
+      }
     }
   }
   async function editUserMessageAndResend(messageId: string, newContent: string){
     const conversation = activeConversation.value;
-    if (!conversation || sending.value) return;
+    if(!conversation || sending.value)return;
     const nextContent = newContent.trim();
-    if (!nextContent) return;
+    if(!nextContent)return;
     const index = conversation.messages.findIndex((item) => item.id === messageId);
-    if (index === -1) return;
+    if(index === -1)return;
     const targetMessage = conversation.messages[index];
-    if (!targetMessage || targetMessage.role !== "user") return;
+    if(!targetMessage || targetMessage.role !== "user")return;
     sending.value = true;
     error.value = null;
     targetMessage.content = nextContent;
@@ -305,17 +313,27 @@ export const useChatStore = defineStore("chat", () => {
     conversation.updatedAt = Date.now();
     try{
       const history = [...conversation.messages];
-      await generateAssistantReply(conversation, history, nextContent);
+      await generateAssistantReply(conversation,history,nextContent);
       updateTitleFromFirstUserMessage(conversation.id);
     }catch(e){
+      if(isAbortError(e)){
+        const lastAssistant = [...conversation.messages]
+          .reverse()
+          .find((msg) => msg.role === "assistant" && msg.isStreaming);
+        if(lastAssistant){
+          lastAssistant.isStreaming = false;
+          lastAssistant.tokenCount = estimateTokens(lastAssistant.content);
+        }
+        conversation.updatedAt = Date.now();
+        return;
+      }
       error.value = e instanceof Error ? e.message : "Unknown error";
       const lastAssistant = [...conversation.messages]
         .reverse()
         .find((msg) => msg.role === "assistant" && msg.isStreaming);
-      if (lastAssistant){
+      if(lastAssistant){
         lastAssistant.isStreaming = false;
-        lastAssistant.content =
-          lastAssistant.content || "發生錯誤，請稍後再試一次。";
+        lastAssistant.content = lastAssistant.content || "發生錯誤，請再試一次。";
         lastAssistant.tokenCount = estimateTokens(lastAssistant.content);
       }
       conversation.updatedAt = Date.now();
@@ -323,7 +341,7 @@ export const useChatStore = defineStore("chat", () => {
       sending.value = false;
     }
   }
-  async function regenerateAssistantMessage(messageId: string){
+  async function regenerateAssistantMessage(messageId: string) {
     if (!activeConversation.value || sending.value) return;
     const targetConversation = activeConversation.value;
     const assistantIndex = targetConversation.messages.findIndex(
@@ -331,9 +349,9 @@ export const useChatStore = defineStore("chat", () => {
     );
     if (assistantIndex === -1) return;
     let userIndex = -1;
-    for (let i = assistantIndex - 1; i >= 0; i--){
+    for (let i = assistantIndex - 1; i >= 0; i--) {
       const currentMessage = targetConversation.messages[i];
-      if (currentMessage && currentMessage.role === "user"){
+      if (currentMessage && currentMessage.role === "user") {
         userIndex = i;
         break;
       }
@@ -352,12 +370,23 @@ export const useChatStore = defineStore("chat", () => {
         historyBeforeAssistant,
         userMessage.content
       );
-    }catch(e){
+    }catch (e){
+      if(isAbortError(e)){
+        const lastAssistant = [...targetConversation.messages]
+          .reverse()
+          .find((msg) => msg.role === "assistant" && msg.isStreaming);
+        if (lastAssistant){
+          lastAssistant.isStreaming = false;
+          lastAssistant.tokenCount = estimateTokens(lastAssistant.content);
+        }
+        targetConversation.updatedAt = Date.now();
+        return;
+      }
       error.value = e instanceof Error ? e.message : "Unknown error";
       const lastAssistant = [...targetConversation.messages]
         .reverse()
         .find((msg) => msg.role === "assistant" && msg.isStreaming);
-      if (lastAssistant){
+      if(lastAssistant){
         lastAssistant.isStreaming = false;
         lastAssistant.content =
           lastAssistant.content || "發生錯誤，請稍後再試一次。";

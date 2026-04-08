@@ -99,8 +99,7 @@
                 :content="m.content"
                 :is-streaming="m.isStreaming"
                 :role="m.role"
-                :can-edit="m.role === 'user' && !m.isStreaming"
-                :can-regenerate="m.role === 'assistant' && !m.isStreaming"
+                :can-edit="m.role === 'user' && !chat.sending"
                 @edit="startEditMessage(m)"
                 @regenerate="handleRegenerate(m)"
               />
@@ -185,7 +184,7 @@ function handleKeydown(e: KeyboardEvent){
 }
 function handleRegenerate(message:ChatMessage){
   if(message.role !== "assistant")return;
-  chat.regenerateAssistantMessage?.(message.id);
+  chat.regenerateAssistantMessage(message.id);
 }
 function startEditMessage(message: ChatMessage){
   if (message.role !== "user") return;
@@ -236,13 +235,6 @@ watch(
     scrollToBottom();
   },
   { deep: true }
-);
-watch(
-  () => chat.error,
-  async () => {
-    await nextTick();
-    scrollToBottom();
-  }
 );
 watch(
   () => chat.activeConversationId,
