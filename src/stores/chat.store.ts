@@ -167,12 +167,13 @@ export const useChatStore = defineStore("chat", () => {
       const p = providers[targetConversation.provider];
       if(!p)throw new Error("Provider not found");
       const input = {
-        conversationId:targetConversation.id,
+        conversationId: targetConversation.id,
         provider:targetConversation.provider,
-        userText,
+        userText:text,
       };
+      const history = [...targetConversation.messages];
       const botMsg:ChatMessage = {
-        id:uid("a"),
+        id: uid("a"),
         role:"assistant",
         content:"",
         createdAt:Date.now(),
@@ -182,8 +183,7 @@ export const useChatStore = defineStore("chat", () => {
       targetConversation.messages.push(botMsg);
       targetConversation.updatedAt = Date.now();
       if(p.stream){
-        const history = [...targetConversation.messages];
-        await p.stream(input,history,{
+        await p.stream(input, history,{
           signal:controller.signal,
           onToken(token){
             botMsg.content += token;
@@ -193,9 +193,7 @@ export const useChatStore = defineStore("chat", () => {
           onDone(){
             botMsg.isStreaming = false;
             botMsg.tokenCount = estimateTokens(botMsg.content);
-            targetConversation.updatedAt = Date.now();
           },
-
           onAbort(){
             botMsg.isStreaming = false;
             botMsg.tokenCount = estimateTokens(botMsg.content);
@@ -203,7 +201,7 @@ export const useChatStore = defineStore("chat", () => {
           },
         });
       }else{
-        const res = await p.send(input,targetConversation.messages);
+        const res = await p.send(input,history);
         botMsg.content = res.assistantText;
         botMsg.tokenCount = estimateTokens(res.assistantText);
         botMsg.isStreaming = false;
