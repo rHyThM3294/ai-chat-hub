@@ -502,7 +502,7 @@ onBeforeUnmount(() => {
   padding: 0.65em 1em;
   font-size: 0.9rem;
   cursor: pointer;
-  transition: all 250ms ease;
+  transition: all 300ms ease;
 }
 .messageEditButton.secondary{
   background-color: rgba(0, 0, 0, 0.08);
