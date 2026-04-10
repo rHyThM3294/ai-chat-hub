@@ -68,42 +68,13 @@
                 </span>
               </div>
             </div>
-            <template v-if="editingMessageId === m.id">
-              <div class="messageEditBox">
-                <textarea
-                  v-model="editingContent"
-                  class="messageEditTextarea"
-                  rows="5"
-                ></textarea>
-                <div class="messageEditActions">
-                  <button
-                    type="button"
-                    class="messageEditButton secondary"
-                    @click="cancelEditMessage"
-                  >
-                    取消
-                  </button>
-                  <button
-                    type="button"
-                    class="messageEditButton primary"
-                    :disabled="isSavingEdit"
-                    @click="saveEditMessage(m)"
-                  >
-                    {{ isSavingEdit ? "重新送出中..." : "儲存並重新送出" }}
-                  </button>
-                </div>
-              </div>
-            </template>
-            <template v-else>
-              <MessageContent
-                :content="m.content"
-                :is-streaming="m.isStreaming"
-                :role="m.role"
-                :can-edit="m.role === 'user' && !chat.sending"
-                @edit="startEditMessage(m)"
-                @regenerate="handleRegenerate(m)"
-              />
-            </template>
+            <MessageContent
+              :content="m.content"
+              :is-streaming="m.isStreaming"
+              :role="m.role"
+              :can-regenerate="m.role === 'assistant' && !m.isStreaming && !chat.sending"
+              @regenerate="handleRegenerate(m)"
+            />
           </div>
         </div>
         <p v-if="chat.error" class="errorMessage">錯誤：{{ chat.error }}</p>
@@ -114,6 +85,7 @@
             ref="textareaRef"
             v-model="input"
             class="userText"
+            :disabled="chat.sending"
             rows="1"
             enterkeyhint="send"
             autocomplete="off"
@@ -126,8 +98,8 @@
           <button
             type="button"
             class="enterButton"
-            :disabled="!chat.sending && !canSend"
             @click="chat.sending ? chat.stopGenerating() : send()"
+            :disabled = "chat.sending && !canSend"
           >
             {{ chat.sending ? "停止" : "送出" }}
           </button>
@@ -137,7 +109,7 @@
   </main>
 </template>
 <script setup lang="ts">
-import { computed, nextTick, onMounted, onBeforeUnmount, ref, watch }from "vue";
+import { computed, nextTick, onMounted, onBeforeUnmount, ref, watch } from "vue";
 import { useChatStore } from "@/stores/chat.store";
 import type { ChatMessage } from "@/types/chat";
 import MessageContent from "@/components/chat/MessageContent.vue";
@@ -148,10 +120,7 @@ const textareaRef = ref<HTMLTextAreaElement | null>(null);
 const conversationRef = ref<HTMLElement | null>(null);
 const sidebarOpen = ref(false);
 const isDesktop = ref(false);
-const editingMessageId = ref<string | null>(null);
-const editingContent = ref("");
-const isSavingEdit = ref(false);
-const canSend = computed(() => input.value.trim().length > 0 && !chat.sending);
+const canSend = computed(() => !chat.sending && input.value.trim().length > 0);
 function resizeTextarea(){
   const el = textareaRef.value;
   if (!el) return;
@@ -160,7 +129,7 @@ function resizeTextarea(){
   el.style.height = `${Math.min(el.scrollHeight, maxHeight)}px`;
   el.style.overflowY = el.scrollHeight > maxHeight ? "auto" : "hidden";
 }
-function scrollToBottom(smooth = true) {
+function scrollToBottom(smooth = true){
   const el = conversationRef.value;
   if (!el) return;
   el.scrollTo({
@@ -175,39 +144,12 @@ function handleKeydown(e: KeyboardEvent){
   if(e.key === "Enter" && e.shiftKey) return;
   if(e.key === "Enter" && !e.shiftKey){
     e.preventDefault();
-    if(chat.sending){
-      chat.stopGenerating();
-      return;
-    }
     send();
   }
 }
 function handleRegenerate(message:ChatMessage){
   if(message.role !== "assistant")return;
-  chat.regenerateAssistantMessage(message.id);
-}
-function startEditMessage(message: ChatMessage){
-  if (message.role !== "user") return;
-  editingMessageId.value = message.id;
-  editingContent.value = message.content;
-}
-function cancelEditMessage(){
-  editingMessageId.value = null;
-  editingContent.value = "";
-}
-async function saveEditMessage(message: ChatMessage){
-  const nextContent = editingContent.value.trim();
-  if (!nextContent) return;
-  if (message.role !== "user") return;
-  try{
-    isSavingEdit.value = true;
-    await chat.editUserMessageAndResend(message.id, nextContent);
-    cancelEditMessage();
-  }catch (error){
-    console.error("編輯訊息後重新送出失敗：", error);
-  }finally{
-    isSavingEdit.value = false;
-  }
+  chat.regenerateAssistantMessage?.(message.id);
 }
 async function send(){
   if (!canSend.value) return;
@@ -232,9 +174,16 @@ watch(
   () => chat.messages,
   async () => {
     await nextTick();
-    scrollToBottom(false);
+    scrollToBottom();
   },
   { deep: true }
+);
+watch(
+  () => chat.error,
+  async () => {
+    await nextTick();
+    scrollToBottom();
+  }
 );
 watch(
   () => chat.activeConversationId,
@@ -369,7 +318,7 @@ onBeforeUnmount(() => {
 .titleGroup{
   min-width: 0;
 }
-.titleText{
+.titleText {
   margin: 0;
   font-size: 1.5rem;
 }
@@ -469,53 +418,6 @@ onBeforeUnmount(() => {
   gap: 1em;
   font-weight: 700;
 }
-.messageEditBox{
-  display: flex;
-  flex-direction: column;
-  gap: 0.75em;
-}
-.messageEditTextarea{
-  width: 100%;
-  min-height: 120px;
-  line-height: 1.6;
-  padding: 0.85em 1em;
-  font-size: 0.95rem;
-  border: 1px solid rgba(0, 0, 0, 0.14);
-  border-radius: 12px;
-  resize: vertical;
-  box-sizing: border-box;
-  outline: none;
-  background-color: #ffffff;
-  color: #111111;
-}
-.messageEditTextarea:focus{
-  border-color: #8b0000;
-}
-.messageEditActions{
-  display: flex;
-  justify-content: flex-end;
-  gap: 0.5em;
-}
-.messageEditButton{
-  border: none;
-  border-radius: 10px;
-  padding: 0.65em 1em;
-  font-size: 0.9rem;
-  cursor: pointer;
-  transition: all 300ms ease;
-}
-.messageEditButton.secondary{
-  background-color: rgba(0, 0, 0, 0.08);
-  color: #222222;
-}
-.messageEditButton.primary{
-  background-color: #8b0000;
-  color: #ffffff;
-}
-.messageEditButton:disabled{
-  opacity: 0.65;
-  cursor: not-allowed;
-}
 .messageMeta{
   display: flex;
   gap: 0.5em;
@@ -607,13 +509,6 @@ onBeforeUnmount(() => {
   }
   .allMessage{
     max-width: 70%;
-  }
-  .messageEditButton.secondary:hover:not(:disabled){
-    background-color: rgba(0, 0, 0, 0.14);
-  }
-  .messageEditButton.primary:hover:not(:disabled){
-    background-color: #000000;
-    color: gold;
   }
   .hint{
     font-size: 1.15em;

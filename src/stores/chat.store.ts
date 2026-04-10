@@ -396,13 +396,20 @@ export const useChatStore = defineStore("chat", () => {
     }
   }
   ensureActiveConversation();
+  let persistTimer: number | null = null;
   watch(
     [conversations, activeConversationId],
     () => {
-      savePersistedState({
-        activeConversationId: activeConversationId.value,
-        conversations: conversations.value,
-      });
+      if (sending.value) return;
+      if (persistTimer){
+        window.clearTimeout(persistTimer);
+      }
+      persistTimer = window.setTimeout(() => {
+        savePersistedState({
+          activeConversationId: activeConversationId.value,
+          conversations: conversations.value,
+        });
+      }, 300);
     },
     { deep: true }
   );
