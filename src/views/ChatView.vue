@@ -232,7 +232,7 @@ watch(
   () => chat.messages,
   async () => {
     await nextTick();
-    scrollToBottom();
+    scrollToBottom(false);
   },
   { deep: true }
 );

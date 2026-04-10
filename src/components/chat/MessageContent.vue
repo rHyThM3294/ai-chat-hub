@@ -9,6 +9,7 @@
       >
         <i :class="messageCopied ? 'fa-solid fa-check' : 'fa-regular fa-copy'"></i>
       </button>
+
       <button
         v-if="role === 'user' && canEdit"
         type="button"
@@ -18,6 +19,7 @@
       >
         <i class="fa-solid fa-pen"></i>
       </button>
+
       <button
         v-if="role === 'assistant' && canRegenerate"
         type="button"
@@ -28,17 +30,18 @@
         <i class="fa-solid fa-rotate-right"></i>
       </button>
     </div>
+
     <div
-      ref="contentRef"
-      class="messageContent markdownBody"
+      class="messageContent"
       :class="{ isStreaming }"
-      v-html="html"
-    ></div>
+    >
+      {{ content }}
+    </div>
   </div>
 </template>
 <script setup lang="ts">
-import{ computed, nextTick, onBeforeUnmount, ref ,watch }from "vue";
-import { renderMarkdown } from "@/utils/renderMarkdown";
+import { onBeforeUnmount, ref } from "vue";
+
 const props = defineProps<{
   content: string;
   isStreaming?: boolean;
@@ -51,74 +54,86 @@ const emit = defineEmits<{
   (e: "regenerate"): void;
   (e: "edit"): void;
 }>();
-const html = computed(() => renderMarkdown(props.content));
-const contentRef = ref<HTMLElement | null>(null);
+
 const messageCopied = ref(false);
-let messageCopyTimer:number | null = null;
-function resetMessageCopyState(){
-  if(messageCopyTimer){
+let messageCopyTimer: number | null = null;
+
+function resetMessageCopyState() {
+  if (messageCopyTimer) {
     window.clearTimeout(messageCopyTimer);
     messageCopyTimer = null;
   }
   messageCopied.value = false;
 }
-async function copyMessage(){
-  try{
+
+async function copyMessage() {
+  try {
     await navigator.clipboard.writeText(props.content ?? "");
     messageCopied.value = true;
-    if(messageCopyTimer){
+
+    if (messageCopyTimer) {
       window.clearTimeout(messageCopyTimer);
     }
+
     messageCopyTimer = window.setTimeout(() => {
       messageCopied.value = false;
       messageCopyTimer = null;
-    },1500);
-  }catch(error){
-    console.error("複製訊息失敗：",error);
+    }, 1500);
+  } catch (error) {
+    console.error("複製訊息失敗：", error);
   }
 }
-function enhanceCodeBlocks(){
-  const root = contentRef.value;
-  if(!root)return;
-  const preList = root.querySelectorAll("pre");
-  preList.forEach((pre) => {
-    if(pre.parentElement?.classList.contains("codeBlockWrapper"))return;
-    const wrapper = document.createElement("div");
-    wrapper.className = "codeBlockWrapper";
-    const button = document.createElement("button");
-    button.className = "codeCopyButton";
-    button.type = "button";
-    button.textContent = "Copy";
-    button.addEventListener("click",async() => {
-      const codeText = pre.querySelector("code")?.textContent ?? pre.textContent ?? "";
-      try{
-        await navigator.clipboard.writeText(codeText);
-        button.textContent = "Copied";
-        window.setTimeout(() => {
-          button.textContent = "Copy";
-        },1200);
-      }catch{
-        button.textContent = "Failed";
-        window.setTimeout(() => {
-          button.textContent = "Copy";
-        },1200);
-      }
-    });
-    const parent = pre.parentNode;
-    if(!parent)return;
-    parent.insertBefore(wrapper, pre);
-    wrapper.appendChild(button);
-    wrapper.appendChild(pre);
-  });
+
+onBeforeUnmount(() => {
+  resetMessageCopyState();
+});
+</script>
+
+<script setup lang="ts">
+import { onBeforeUnmount, ref } from "vue";
+
+const props = defineProps<{
+  content: string;
+  isStreaming?: boolean;
+  role?: "user" | "assistant" | "system";
+  canRegenerate?: boolean;
+  canEdit?: boolean;
+}>();
+
+const emit = defineEmits<{
+  (e: "regenerate"): void;
+  (e: "edit"): void;
+}>();
+
+const messageCopied = ref(false);
+let messageCopyTimer: number | null = null;
+
+function resetMessageCopyState() {
+  if (messageCopyTimer) {
+    window.clearTimeout(messageCopyTimer);
+    messageCopyTimer = null;
+  }
+  messageCopied.value = false;
 }
-watch(
-  html,
-  async() => {
-    await nextTick();
-    enhanceCodeBlocks();
-  },
-  { immediate: true }
-);
+
+async function copyMessage() {
+  try {
+    await navigator.clipboard.writeText(props.content ?? "");
+    messageCopied.value = true;
+
+    if (messageCopyTimer) {
+      window.clearTimeout(messageCopyTimer);
+    }
+
+    messageCopyTimer = window.setTimeout(() => {
+      messageCopied.value = false;
+      messageCopyTimer = null;
+    }, 1500);
+  } catch (error) {
+    console.error("複製訊息失敗：", error);
+  }
+}
+
 onBeforeUnmount(() => {
   resetMessageCopyState();
 });
