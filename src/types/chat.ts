@@ -12,7 +12,9 @@ export interface ChatConversation{
   id:string;
   title:string;
   provider:ProviderId;
-  userText:string;
+  messages: ChatMessage[];
+  createdAt:number;
+  updatedAt:number;
 }
 export interface ChatSendInput{
   conversationId:string;
