@@ -88,56 +88,6 @@ onBeforeUnmount(() => {
   resetMessageCopyState();
 });
 </script>
-
-<script setup lang="ts">
-import { onBeforeUnmount, ref } from "vue";
-
-const props = defineProps<{
-  content: string;
-  isStreaming?: boolean;
-  role?: "user" | "assistant" | "system";
-  canRegenerate?: boolean;
-  canEdit?: boolean;
-}>();
-
-const emit = defineEmits<{
-  (e: "regenerate"): void;
-  (e: "edit"): void;
-}>();
-
-const messageCopied = ref(false);
-let messageCopyTimer: number | null = null;
-
-function resetMessageCopyState() {
-  if (messageCopyTimer) {
-    window.clearTimeout(messageCopyTimer);
-    messageCopyTimer = null;
-  }
-  messageCopied.value = false;
-}
-
-async function copyMessage() {
-  try {
-    await navigator.clipboard.writeText(props.content ?? "");
-    messageCopied.value = true;
-
-    if (messageCopyTimer) {
-      window.clearTimeout(messageCopyTimer);
-    }
-
-    messageCopyTimer = window.setTimeout(() => {
-      messageCopied.value = false;
-      messageCopyTimer = null;
-    }, 1500);
-  } catch (error) {
-    console.error("複製訊息失敗：", error);
-  }
-}
-
-onBeforeUnmount(() => {
-  resetMessageCopyState();
-});
-</script>
 <style scoped>
 .messageContentWrap{
   width: 100%;
