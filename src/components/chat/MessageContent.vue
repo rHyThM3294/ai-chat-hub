@@ -116,7 +116,7 @@ onBeforeUnmount(() => {
   transition: all 300ms ease;
 }
 .messageContent{
-  white-space: normal;
+  white-space: pre-wrap;
   word-break: break-word;
   line-height: 1.7;
 }

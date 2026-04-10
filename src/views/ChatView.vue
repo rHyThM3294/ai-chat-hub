@@ -99,7 +99,7 @@
             type="button"
             class="enterButton"
             @click="chat.sending ? chat.stopGenerating() : send()"
-            :disabled = "chat.sending && !canSend"
+            :disabled="!chat.sending && !canSend"
           >
             {{ chat.sending ? "停止" : "送出" }}
           </button>
@@ -120,7 +120,8 @@ const textareaRef = ref<HTMLTextAreaElement | null>(null);
 const conversationRef = ref<HTMLElement | null>(null);
 const sidebarOpen = ref(false);
 const isDesktop = ref(false);
-const canSend = computed(() => !chat.sending && input.value.trim().length > 0);
+const canSend = computed(() => input.value.trim().length > 0 && !chat.sending);
+const canStop = computed(() => chat.sending);
 function resizeTextarea(){
   const el = textareaRef.value;
   if (!el) return;
@@ -141,11 +142,14 @@ function handleInput(){
   resizeTextarea();
 }
 function handleKeydown(e: KeyboardEvent){
-  if(e.key === "Enter" && e.shiftKey) return;
-  if(e.key === "Enter" && !e.shiftKey){
-    e.preventDefault();
-    send();
+  if(e.key !== "Enter")return;
+  if(e.shiftKey)return;
+  e.preventDefault();
+  if(chat.sending){
+    chat.stopGenerating();
+    return;
   }
+  send();
 }
 function handleRegenerate(message:ChatMessage){
   if(message.role !== "assistant")return;

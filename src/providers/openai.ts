@@ -1,8 +1,10 @@
 import type { ChatProvider } from "./base";
 import type { ChatMessage, ChatSendInput, ChatSendResult } from "@/types/chat";
+
 export const openaiProvider: ChatProvider = {
   id: "openai",
   displayName: "OpenAI (via Vercel)",
+
   async send(_input: ChatSendInput, history: ChatMessage[]): Promise<ChatSendResult>{
     const res = await fetch("/api/chat", {
       method: "POST",
@@ -15,13 +17,16 @@ export const openaiProvider: ChatProvider = {
         })),
       }),
     });
-    if(!res.ok){
+
+    if (!res.ok){
       const t = await res.text().catch(() => "");
       throw new Error(`API error (${res.status}): ${t || res.statusText}`);
     }
+
     const data = (await res.json()) as { assistantText: string };
     return { assistantText: data.assistantText || "" };
   },
+
   async stream(input: ChatSendInput, history: ChatMessage[], handlers){
     const res = await fetch("/api/chat", {
       method: "POST",
@@ -39,50 +44,75 @@ export const openaiProvider: ChatProvider = {
         })),
       }),
     });
-    if(!res.ok){
+
+    if (!res.ok){
       const t = await res.text().catch(() => "");
       throw new Error(`API error (${res.status}): ${t || res.statusText}`);
     }
+
     const reader = res.body?.getReader();
-    if(!reader){
+    if (!reader){
       throw new Error("No response body");
     }
+
     const decoder = new TextDecoder();
     let buffer = "";
+
     try{
-      while(true){
+      while (true){
         if (handlers.signal?.aborted){
           handlers.onAbort?.();
           throw new DOMException("Aborted", "AbortError");
         }
-        const{ value, done } = await reader.read();
+
+        let result: ReadableStreamReadResult<Uint8Array>;
+        try{
+          result = await reader.read();
+        }catch (error){
+          if (handlers.signal?.aborted){
+            handlers.onAbort?.();
+            throw new DOMException("Aborted", "AbortError");
+          }
+          throw error;
+        }
+
+        const { value, done } = result;
         if (done) break;
+
         buffer += decoder.decode(value, { stream: true });
         const chunks = buffer.split("\n\n");
         buffer = chunks.pop() || "";
-        for (const chunk of chunks) {
+
+        for (const chunk of chunks){
           const line = chunk.trim();
-          if(!line.startsWith("data:"))continue;
+          if (!line.startsWith("data:")) continue;
+
           const raw = line.replace(/^data:\s*/, "");
+
+          let json: any;
           try{
-            const json = JSON.parse(raw);
-            if(json.token){
-              handlers.onToken(json.token);
-            }
-            if(json.done){
-              handlers.onDone?.();
-              return;
-            }
-            if(json.error){
-              throw new Error(json.error);
-            }
-          }catch(error){
-            if(error instanceof Error)throw error;
+            json = JSON.parse(raw);
+          }catch{
+            continue;
+          }
+
+          if (json.error){
+            throw new Error(json.error);
+          }
+
+          if (json.token){
+            handlers.onToken(json.token);
+          }
+
+          if (json.done){
+            handlers.onDone?.();
+            return;
           }
         }
       }
+
       handlers.onDone?.();
-    }finally{
+    } finally {
       reader.releaseLock();
     }
   },

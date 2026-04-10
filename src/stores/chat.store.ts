@@ -131,7 +131,8 @@ export const useChatStore = defineStore("chat", () => {
     target.updatedAt = Date.now();
   }
   function stopGenerating(){
-    if(!currentAbortController.value)return;
+    if (!sending.value) return;
+    if (!currentAbortController.value) return;
     currentAbortController.value.abort();
   }
   function resetConversation(){
@@ -141,8 +142,12 @@ export const useChatStore = defineStore("chat", () => {
     activeConversation.value.updatedAt = Date.now();
     error.value = null;
   }
-  function isAbortError(error:unknown){
-    return error instanceof DOMException && error.name === "AbortError";
+  function isAbortError(error: unknown){
+    return (
+      error instanceof DOMException && error.name === "AbortError"
+    ) || (
+      error instanceof Error && error.name === "AbortError"
+    );
   }
   async function sendUserText(userText:string){
     const text = userText.trim();
