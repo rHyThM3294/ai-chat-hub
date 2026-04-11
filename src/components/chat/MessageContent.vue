@@ -88,6 +88,9 @@ const md = new MarkdownIt({
   },
 });
 const renderedHtml = computed(() => {
+  if (props.isStreaming){
+    return mdUtils.escapeHtml(props.content || '')
+  }
   return md.render(props.content || "");
 });
 function resetMessageCopyState() {
@@ -186,6 +189,7 @@ onBeforeUnmount(() => {
 }
 .markdownBody{
   display: inline;
+  white-space: pre-wrap;
 }
 .streamCursor{
   display: inline-block;
