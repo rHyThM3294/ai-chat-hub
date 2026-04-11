@@ -97,11 +97,11 @@
           ></textarea>
           <button
             type="button"
-            class="enterButton"
-            @click="chat.sending ? chat.stopGenerating() : send()"
-            :disabled="!chat.sending && !canSend"
+            class="sendButton"
+            :disabled="!canSend && !canStop"
+            @click="canStop ? stopGenerating() : send()"
           >
-            {{ chat.sending ? "停止" : "送出" }}
+            {{ chat.sending ? "停止生成" : "送出" }}
           </button>
         </div>
       </footer>
@@ -142,17 +142,17 @@ function handleInput(){
   resizeTextarea();
 }
 function handleKeydown(e: KeyboardEvent){
-  if(e.key !== "Enter")return;
-  if(e.shiftKey)return;
+  if (e.key !== "Enter") return;
+  if (e.shiftKey) return;
   e.preventDefault();
-  if(chat.sending){
-    chat.stopGenerating();
+  if(canStop.value){
+    stopGenerating();
     return;
   }
   send();
 }
-function handleRegenerate(message:ChatMessage){
-  if(message.role !== "assistant")return;
+function handleRegenerate(message: ChatMessage){
+  if (message.role !== "assistant") return;
   chat.regenerateAssistantMessage?.(message.id);
 }
 async function send(){
@@ -164,6 +164,10 @@ async function send(){
   await chat.sendUserText(text);
   await nextTick();
   scrollToBottom();
+}
+function stopGenerating(){
+  if (!canStop.value) return;
+  chat.stopGenerating();
 }
 function syncViewportState(){
   isDesktop.value = window.innerWidth > 768;
@@ -194,7 +198,7 @@ watch(
   async () => {
     await nextTick();
     scrollToBottom(false);
-    if(!isDesktop.value){
+    if (!isDesktop.value){
       sidebarOpen.value = false;
     }
   }
@@ -467,7 +471,7 @@ onBeforeUnmount(() => {
 .userText:focus{
   border-color: #8b0000;
 }
-.enterButton{
+.sendButton{
   position: absolute;
   right: 8px;
   bottom: 12px;
@@ -478,7 +482,7 @@ onBeforeUnmount(() => {
   border-radius: 10px;
   transition: all ease 300ms;
 }
-.enterButton:disabled{
+.sendButton:disabled{
   background-color: #c5c5c5;
   color: #474747;
   opacity: 0.7;
@@ -521,7 +525,7 @@ onBeforeUnmount(() => {
     color: gold;
     background-color: #000000;
   }
-  .enterButton:hover:not(:disabled){
+  .sendButton:hover:not(:disabled){
     color: gold;
     background-color: #000000;
   }
