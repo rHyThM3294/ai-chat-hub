@@ -1,6 +1,5 @@
 type Role = "user" | "assistant" | "system";
 type ChatMessage = { role: Role; content: string };
-
 export default async function handler(req: any, res: any) {
   let streamingStarted = false;  // 追蹤是否已開始串流
   try {
@@ -47,6 +46,7 @@ export default async function handler(req: any, res: any) {
       "Cache-Control": "no-cache, no-transform",
       Connection: "keep-alive",
     });
+    res.flushHeaders();
     streamingStarted = true;  // 標記已開始串流
     const reader = upstream.body?.getReader();
     if (!reader) {
