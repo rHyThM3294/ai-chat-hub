@@ -198,6 +198,7 @@ export const useChatStore = defineStore("chat", () => {
           onDone(){
             botMsg.isStreaming = false;
             botMsg.tokenCount = estimateTokens(botMsg.content);
+            targetConversation.updatedAt = Date.now();
           },
           onAbort(){
             botMsg.isStreaming = false;
