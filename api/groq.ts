@@ -75,7 +75,7 @@ export default async function handler(req: any, res: any) {
           if (token) {
             res.write(`data: ${JSON.stringify({ token })}\n\n`);
           }
-        } catch {
+        }catch{
           // 忽略解析失敗的小片段
         }
       }
