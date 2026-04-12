@@ -45,6 +45,7 @@ function loadPersistedState(): PersistedChatState | null {
 function savePersistedState(state: PersistedChatState) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
 }
+
 export const useChatStore = defineStore("chat", () => {
   const persisted = loadPersistedState();
   const conversations = ref<ChatConversation[]>(
@@ -143,24 +144,35 @@ export const useChatStore = defineStore("chat", () => {
     target.title = firstUserMessage.content.slice(0, 18) || "未命名對話";
     target.updatedAt = Date.now();
   }
-  function stopGenerating(){
-    if(!sending.value)return;
-    if(!currentAbortController.value)return;
+
+  function stopGenerating() {
+    if (!sending.value) return;
+    if (!currentAbortController.value) return;
     currentAbortController.value.abort();
   }
-  function resetConversation(){
-    if(!activeConversation.value)return;
+
+  function resetConversation() {
+    if (!activeConversation.value) return;
     activeConversation.value.messages = [];
     activeConversation.value.title = "新對話";
     activeConversation.value.updatedAt = Date.now();
     error.value = null;
   }
-  function isAbortError(error: unknown){
-    return(
-      (error instanceof DOMException && error.name === "AbortError") ||
-      (error instanceof Error && error.name === "AbortError")
+
+  function isAbortError(err: unknown) {
+    return (
+      (err instanceof DOMException && err.name === "AbortError") ||
+      (err instanceof Error && err.name === "AbortError")
     );
   }
+
+  // 從響應式陣列取得最後一個 assistant 訊息（讓 Vue Proxy 能追蹤變化）
+  function getLastAssistantMsg(targetConversation: ChatConversation): ChatMessage | null {
+    const last = targetConversation.messages[targetConversation.messages.length - 1];
+    if (last && last.role === "assistant") return last;
+    return null;
+  }
+
   async function sendUserText(userText: string) {
     const text = userText.trim();
     if (!text || sending.value) return;
@@ -170,6 +182,7 @@ export const useChatStore = defineStore("chat", () => {
     const controller = new AbortController();
     currentAbortController.value = controller;
     const targetConversation = activeConversation.value;
+
     const userMsg: ChatMessage = {
       id: uid("u"),
       role: "user",
@@ -180,55 +193,70 @@ export const useChatStore = defineStore("chat", () => {
     targetConversation.messages.push(userMsg);
     targetConversation.updatedAt = Date.now();
     updateTitleFromFirstUserMessage(targetConversation.id);
-    try{
+
+    try {
       const p = providers[targetConversation.provider];
       if (!p) throw new Error("Provider not found");
+
       const input = {
         conversationId: targetConversation.id,
         provider: targetConversation.provider,
         userText: text,
       };
       const history = [...targetConversation.messages];
-      const botMsg: ChatMessage = {
+
+      // 直接 push 進響應式陣列，讓 Vue Proxy 包住這個物件
+      targetConversation.messages.push({
         id: uid("a"),
         role: "assistant",
         content: "",
         createdAt: Date.now(),
         tokenCount: 0,
         isStreaming: true,
-      };
-      targetConversation.messages.push(botMsg);
+      });
       targetConversation.updatedAt = Date.now();
-      if (p.stream){
+
+      if (p.stream) {
         await p.stream(input, history, {
-          signal:controller.signal,
-          onToken(token){
-            botMsg.content += token
+          signal: controller.signal,
+          onToken(token) {
+            // 透過響應式陣列索引取得物件，Vue 才能追蹤到變化
+            const last = getLastAssistantMsg(targetConversation);
+            if (last) last.content += token;
           },
-          onDone(){
-            botMsg.isStreaming = false 
-            botMsg.tokenCount = estimateTokens(botMsg.content)
-            targetConversation.updatedAt = Date.now()
+          onDone() {
+            const last = getLastAssistantMsg(targetConversation);
+            if (last) {
+              last.isStreaming = false;
+              last.tokenCount = estimateTokens(last.content);
+            }
+            targetConversation.updatedAt = Date.now();
           },
-          onAbort(){
-            botMsg.isStreaming = false
-            botMsg.tokenCount = estimateTokens(botMsg.content)
-            targetConversation.updatedAt = Date.now()
-          }
+          onAbort() {
+            const last = getLastAssistantMsg(targetConversation);
+            if (last) {
+              last.isStreaming = false;
+              last.tokenCount = estimateTokens(last.content);
+            }
+            targetConversation.updatedAt = Date.now();
+          },
         });
-      }else{
+      } else {
         const res = await p.send(input, history);
-        botMsg.content = res.assistantText;
-        botMsg.tokenCount = estimateTokens(res.assistantText);
-        botMsg.isStreaming = false;
+        const last = getLastAssistantMsg(targetConversation);
+        if (last) {
+          last.content = res.assistantText;
+          last.tokenCount = estimateTokens(res.assistantText);
+          last.isStreaming = false;
+        }
         targetConversation.updatedAt = Date.now();
       }
-    } catch (e){
-      if (isAbortError(e)){
+    } catch (e) {
+      if (isAbortError(e)) {
         const lastAssistant = [...targetConversation.messages]
           .reverse()
           .find((msg) => msg.role === "assistant" && msg.isStreaming);
-        if (lastAssistant){
+        if (lastAssistant) {
           lastAssistant.isStreaming = false;
           lastAssistant.tokenCount = estimateTokens(lastAssistant.content);
         }
@@ -245,13 +273,14 @@ export const useChatStore = defineStore("chat", () => {
         lastAssistant.tokenCount = estimateTokens(lastAssistant.content);
       }
       targetConversation.updatedAt = Date.now();
-    }finally{
-      if(currentAbortController.value === controller) {
+    } finally {
+      if (currentAbortController.value === controller) {
         currentAbortController.value = null;
       }
       sending.value = false;
     }
   }
+
   async function generateAssistantReply(
     targetConversation: ChatConversation,
     history: ChatMessage[],
@@ -266,48 +295,61 @@ export const useChatStore = defineStore("chat", () => {
       provider: targetConversation.provider,
       userText,
     };
-    const botMsg: ChatMessage = {
+
+    // 直接 push 進響應式陣列
+    targetConversation.messages.push({
       id: uid("a"),
       role: "assistant",
       content: "",
       createdAt: Date.now(),
       tokenCount: 0,
       isStreaming: true,
-    };
-    targetConversation.messages.push(botMsg);
+    });
     targetConversation.updatedAt = Date.now();
-    try{
-      if (p.stream){
+
+    try {
+      if (p.stream) {
         await p.stream(input, history, {
-          signal:controller.signal,
-          onToken(token){
-            botMsg.content += token
+          signal: controller.signal,
+          onToken(token) {
+            const last = getLastAssistantMsg(targetConversation);
+            if (last) last.content += token;
           },
-          onDone(){
-            botMsg.isStreaming = false
-            botMsg.tokenCount = estimateTokens(botMsg.content)
-            targetConversation.updatedAt = Date.now()
+          onDone() {
+            const last = getLastAssistantMsg(targetConversation);
+            if (last) {
+              last.isStreaming = false;
+              last.tokenCount = estimateTokens(last.content);
+            }
+            targetConversation.updatedAt = Date.now();
           },
-          onAbort(){
-            botMsg.isStreaming = false
-            botMsg.tokenCount = estimateTokens(botMsg.content)
-            targetConversation.updatedAt = Date.now()
-          }
+          onAbort() {
+            const last = getLastAssistantMsg(targetConversation);
+            if (last) {
+              last.isStreaming = false;
+              last.tokenCount = estimateTokens(last.content);
+            }
+            targetConversation.updatedAt = Date.now();
+          },
         });
-      }else{
+      } else {
         const res = await p.send(input, history);
-        botMsg.content = res.assistantText;
-        botMsg.tokenCount = estimateTokens(res.assistantText);
-        botMsg.isStreaming = false;
+        const last = getLastAssistantMsg(targetConversation);
+        if (last) {
+          last.content = res.assistantText;
+          last.tokenCount = estimateTokens(res.assistantText);
+          last.isStreaming = false;
+        }
         targetConversation.updatedAt = Date.now();
       }
-    } finally{
-      if(currentAbortController.value === controller){
+    } finally {
+      if (currentAbortController.value === controller) {
         currentAbortController.value = null;
       }
     }
   }
-  async function editUserMessageAndResend(messageId: string, newContent: string){
+
+  async function editUserMessageAndResend(messageId: string, newContent: string) {
     const conversation = activeConversation.value;
     if (!conversation || sending.value) return;
     const nextContent = newContent.trim();
@@ -353,6 +395,7 @@ export const useChatStore = defineStore("chat", () => {
       sending.value = false;
     }
   }
+
   async function regenerateAssistantMessage(messageId: string) {
     if (!activeConversation.value || sending.value) return;
     const targetConversation = activeConversation.value;
@@ -408,7 +451,9 @@ export const useChatStore = defineStore("chat", () => {
       sending.value = false;
     }
   }
+
   ensureActiveConversation();
+
   let persistTimer: number | null = null;
   watch(
     [conversations, activeConversationId],
@@ -426,7 +471,8 @@ export const useChatStore = defineStore("chat", () => {
     },
     { deep: true }
   );
-  return{
+
+  return {
     conversations,
     activeConversationId,
     activeConversation,
