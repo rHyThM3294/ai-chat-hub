@@ -15,13 +15,14 @@ const providers: Partial<Record<ProviderId, ChatProvider>> = {
 };
 const STORAGE_KEY = "ai-chat-hub-history";
 
-interface PersistedChatState{
+interface PersistedChatState {
   activeConversationId: string;
   conversations: ChatConversation[];
 }
-function createConversation(provider: ProviderId = "mock"): ChatConversation{
+
+function createConversation(provider: ProviderId = "mock"): ChatConversation {
   const now = Date.now();
-  return{
+  return {
     id: uid("c"),
     title: "新對話",
     provider,
@@ -30,17 +31,46 @@ function createConversation(provider: ProviderId = "mock"): ChatConversation{
     updatedAt: now,
   };
 }
-function loadPersistedState(): PersistedChatState | null{
-  try{
+
+function loadPersistedState(): PersistedChatState | null {
+  try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return null;
     return JSON.parse(raw) as PersistedChatState;
-  }catch{
+  } catch {
     return null;
   }
 }
-function savePersistedState(state: PersistedChatState){
+
+function savePersistedState(state: PersistedChatState) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+}
+
+// 批次更新 helper，避免每個 token 都觸發 Vue 響應式更新
+function createTokenHandler(
+  botMsg: ChatMessage,
+  targetConversation: ChatConversation
+) {
+  let rafId: number | null = null;
+  let pendingContent = "";
+  return {
+    onToken(token: string){
+      pendingContent += token;
+      if(rafId !== null)return;
+      rafId = requestAnimationFrame(() => {
+        botMsg.content = pendingContent;
+        targetConversation.updatedAt = Date.now();
+        rafId = null;
+      });
+    },
+    flush(){
+      if(rafId !== null){
+        cancelAnimationFrame(rafId);
+        rafId = null;
+      }
+      botMsg.content = pendingContent;
+    },
+  };
 }
 export const useChatStore = defineStore("chat", () => {
   const persisted = loadPersistedState();
@@ -56,6 +86,7 @@ export const useChatStore = defineStore("chat", () => {
   const currentAbortController = ref<AbortController | null>(null);
   const canStop = computed(() => sending.value);
   const error = ref<string | null>(null);
+
   const activeConversation = computed(() => {
     return (
       conversations.value.find((item) => item.id === activeConversationId.value) ??
@@ -63,24 +94,28 @@ export const useChatStore = defineStore("chat", () => {
       null
     );
   });
+
   const messages = computed(() => activeConversation.value?.messages ?? []);
+
   const provider = computed<ProviderId>({
-    get(){
+    get() {
       return activeConversation.value?.provider ?? "mock";
     },
-    set(value){
+    set(value) {
       if (!activeConversation.value) return;
       activeConversation.value.provider = value;
       activeConversation.value.updatedAt = Date.now();
     },
   });
+
   const totalTokens = computed(() =>
     messages.value.reduce(
       (sum, msg) => sum + (msg.tokenCount ?? estimateTokens(msg.content)),
       0
     )
   );
-  function ensureActiveConversation(){
+
+  function ensureActiveConversation() {
     if (!conversations.value.length) {
       const chat = createConversation("mock");
       conversations.value.push(chat);
@@ -89,50 +124,55 @@ export const useChatStore = defineStore("chat", () => {
     const exists = conversations.value.some(
       (item) => item.id === activeConversationId.value
     );
-    if (!exists){
+    if (!exists) {
       activeConversationId.value = conversations.value[0]?.id ?? "";
     }
   }
-  function createNewConversation(nextProvider?: ProviderId){
+
+  function createNewConversation(nextProvider?: ProviderId) {
     const chat = createConversation(nextProvider ?? provider.value ?? "mock");
     conversations.value.unshift(chat);
     activeConversationId.value = chat.id;
     error.value = null;
   }
-  function switchConversation(conversationId: string){
+
+  function switchConversation(conversationId: string) {
     const exists = conversations.value.some((item) => item.id === conversationId);
     if (!exists) return;
     activeConversationId.value = conversationId;
     error.value = null;
   }
-  function deleteConversation(conversationId: string){
+
+  function deleteConversation(conversationId: string) {
     const index = conversations.value.findIndex((item) => item.id === conversationId);
     if (index === -1) return;
     conversations.value.splice(index, 1);
-    if (activeConversationId.value === conversationId){
+    if (activeConversationId.value === conversationId) {
       activeConversationId.value = conversations.value[0]?.id ?? "";
     }
     ensureActiveConversation();
     error.value = null;
   }
-  function renameConversation(conversationId: string, title: string){
+
+  function renameConversation(conversationId: string, title: string) {
     const target = conversations.value.find((item) => item.id === conversationId);
     if (!target) return;
     target.title = title.trim() || "未命名對話";
     target.updatedAt = Date.now();
   }
-  function updateTitleFromFirstUserMessage(conversationId: string){
+
+  function updateTitleFromFirstUserMessage(conversationId: string) {
     const target = conversations.value.find((item) => item.id === conversationId);
-    if(!target) return;
-    if(target.title !== "新對話")return;
+    if (!target) return;
+    if (target.title !== "新對話") return;
     const firstUserMessage = target.messages.find((m) => m.role === "user");
-    if(!firstUserMessage)return;
+    if (!firstUserMessage) return;
     target.title = firstUserMessage.content.slice(0, 18) || "未命名對話";
     target.updatedAt = Date.now();
   }
   function stopGenerating(){
-    if (!sending.value) return;
-    if (!currentAbortController.value) return;
+    if(!sending.value)return;
+    if(!currentAbortController.value)return;
     currentAbortController.value.abort();
   }
   function resetConversation(){
@@ -143,82 +183,82 @@ export const useChatStore = defineStore("chat", () => {
     error.value = null;
   }
   function isAbortError(error: unknown){
-    return (
-      error instanceof DOMException && error.name === "AbortError"
-    ) || (
-      error instanceof Error && error.name === "AbortError"
+    return(
+      (error instanceof DOMException && error.name === "AbortError") ||
+      (error instanceof Error && error.name === "AbortError")
     );
   }
-  async function sendUserText(userText:string){
+  async function sendUserText(userText: string) {
     const text = userText.trim();
-    if(!text || sending.value) return;
-    if(!activeConversation.value) return;
+    if (!text || sending.value) return;
+    if (!activeConversation.value) return;
     sending.value = true;
     error.value = null;
     const controller = new AbortController();
     currentAbortController.value = controller;
     const targetConversation = activeConversation.value;
-    const userMsg:ChatMessage = {
-      id:uid("u"),
-      role:"user",
+    const userMsg: ChatMessage = {
+      id: uid("u"),
+      role: "user",
       content: text,
-      createdAt:Date.now(),
-      tokenCount:estimateTokens(text),
+      createdAt: Date.now(),
+      tokenCount: estimateTokens(text),
     };
     targetConversation.messages.push(userMsg);
     targetConversation.updatedAt = Date.now();
     updateTitleFromFirstUserMessage(targetConversation.id);
     try{
       const p = providers[targetConversation.provider];
-      if(!p)throw new Error("Provider not found");
+      if (!p) throw new Error("Provider not found");
       const input = {
         conversationId: targetConversation.id,
-        provider:targetConversation.provider,
-        userText:text,
+        provider: targetConversation.provider,
+        userText: text,
       };
       const history = [...targetConversation.messages];
-      const botMsg:ChatMessage = {
+      const botMsg: ChatMessage = {
         id: uid("a"),
-        role:"assistant",
-        content:"",
-        createdAt:Date.now(),
-        tokenCount:0,
-        isStreaming:true,
+        role: "assistant",
+        content: "",
+        createdAt: Date.now(),
+        tokenCount: 0,
+        isStreaming: true,
       };
       targetConversation.messages.push(botMsg);
       targetConversation.updatedAt = Date.now();
-      if(p.stream){
-        await p.stream(input, history,{
-          signal:controller.signal,
+      if (p.stream){
+        const handler = createTokenHandler(botMsg, targetConversation);
+        await p.stream(input, history, {
+          signal: controller.signal,
           onToken(token){
-            botMsg.content += token;
-            botMsg.tokenCount = estimateTokens(botMsg.content);
-            targetConversation.updatedAt = Date.now();
+            handler.onToken(token);
           },
           onDone(){
+            handler.flush();
             botMsg.isStreaming = false;
             botMsg.tokenCount = estimateTokens(botMsg.content);
             targetConversation.updatedAt = Date.now();
           },
           onAbort(){
+            handler.flush();
             botMsg.isStreaming = false;
             botMsg.tokenCount = estimateTokens(botMsg.content);
             targetConversation.updatedAt = Date.now();
           },
         });
       }else{
-        const res = await p.send(input,history);
+        const res = await p.send(input, history);
         botMsg.content = res.assistantText;
         botMsg.tokenCount = estimateTokens(res.assistantText);
         botMsg.isStreaming = false;
         targetConversation.updatedAt = Date.now();
       }
-    }catch(e){
-      if(isAbortError(e)){
+    } catch (e){
+      if (isAbortError(e)){
         const lastAssistant = [...targetConversation.messages]
           .reverse()
           .find((msg) => msg.role === "assistant" && msg.isStreaming);
-        if(lastAssistant){
+        if (lastAssistant){
           lastAssistant.isStreaming = false;
           lastAssistant.tokenCount = estimateTokens(lastAssistant.content);
         }
@@ -229,14 +269,14 @@ export const useChatStore = defineStore("chat", () => {
       const lastAssistant = [...targetConversation.messages]
         .reverse()
         .find((msg) => msg.role === "assistant" && msg.isStreaming);
-        if(lastAssistant){
-          lastAssistant.isStreaming = false;
-          lastAssistant.content = lastAssistant.content || "發生錯誤，請稍後再試一次。"
-          lastAssistant.tokenCount = estimateTokens(lastAssistant.content);
-        }
-        targetConversation.updatedAt = Date.now();
+      if (lastAssistant) {
+        lastAssistant.isStreaming = false;
+        lastAssistant.content = lastAssistant.content || "發生錯誤，請稍後再試一次。";
+        lastAssistant.tokenCount = estimateTokens(lastAssistant.content);
+      }
+      targetConversation.updatedAt = Date.now();
     }finally{
-      if(currentAbortController.value === controller){
+      if(currentAbortController.value === controller) {
         currentAbortController.value = null;
       }
       sending.value = false;
@@ -246,9 +286,9 @@ export const useChatStore = defineStore("chat", () => {
     targetConversation: ChatConversation,
     history: ChatMessage[],
     userText: string
-  ){
+  ) {
     const p = providers[targetConversation.provider];
-    if(!p)throw new Error("Provider not found");
+    if (!p) throw new Error("Provider not found");
     const controller = new AbortController();
     currentAbortController.value = controller;
     const input = {
@@ -267,47 +307,48 @@ export const useChatStore = defineStore("chat", () => {
     targetConversation.messages.push(botMsg);
     targetConversation.updatedAt = Date.now();
     try{
-      if(p.stream){
+      if (p.stream){
+        const handler = createTokenHandler(botMsg, targetConversation);
         await p.stream(input, history, {
           signal: controller.signal,
           onToken(token){
-            botMsg.content += token;
-            botMsg.tokenCount = estimateTokens(botMsg.content);
-            targetConversation.updatedAt = Date.now();
+            handler.onToken(token);
           },
           onDone(){
+            handler.flush();
             botMsg.isStreaming = false;
             botMsg.tokenCount = estimateTokens(botMsg.content);
             targetConversation.updatedAt = Date.now();
           },
           onAbort(){
+            handler.flush();
             botMsg.isStreaming = false;
             botMsg.tokenCount = estimateTokens(botMsg.content);
             targetConversation.updatedAt = Date.now();
           },
         });
-      }else{
+      } else {
         const res = await p.send(input, history);
         botMsg.content = res.assistantText;
         botMsg.tokenCount = estimateTokens(res.assistantText);
         botMsg.isStreaming = false;
         targetConversation.updatedAt = Date.now();
       }
-    }finally{
-      if(currentAbortController.value === controller){
+    } finally {
+      if (currentAbortController.value === controller) {
         currentAbortController.value = null;
       }
     }
   }
-  async function editUserMessageAndResend(messageId: string, newContent: string){
+  async function editUserMessageAndResend(messageId: string, newContent: string) {
     const conversation = activeConversation.value;
-    if(!conversation || sending.value)return;
+    if (!conversation || sending.value) return;
     const nextContent = newContent.trim();
-    if(!nextContent)return;
+    if (!nextContent) return;
     const index = conversation.messages.findIndex((item) => item.id === messageId);
-    if(index === -1)return;
+    if (index === -1) return;
     const targetMessage = conversation.messages[index];
-    if(!targetMessage || targetMessage.role !== "user")return;
+    if (!targetMessage || targetMessage.role !== "user") return;
     sending.value = true;
     error.value = null;
     targetMessage.content = nextContent;
@@ -315,16 +356,16 @@ export const useChatStore = defineStore("chat", () => {
     targetMessage.tokenCount = estimateTokens(nextContent);
     conversation.messages.splice(index + 1);
     conversation.updatedAt = Date.now();
-    try{
+    try {
       const history = [...conversation.messages];
-      await generateAssistantReply(conversation,history,nextContent);
+      await generateAssistantReply(conversation, history, nextContent);
       updateTitleFromFirstUserMessage(conversation.id);
-    }catch(e){
-      if(isAbortError(e)){
+    } catch (e) {
+      if (isAbortError(e)) {
         const lastAssistant = [...conversation.messages]
           .reverse()
           .find((msg) => msg.role === "assistant" && msg.isStreaming);
-        if(lastAssistant){
+        if (lastAssistant) {
           lastAssistant.isStreaming = false;
           lastAssistant.tokenCount = estimateTokens(lastAssistant.content);
         }
@@ -335,13 +376,13 @@ export const useChatStore = defineStore("chat", () => {
       const lastAssistant = [...conversation.messages]
         .reverse()
         .find((msg) => msg.role === "assistant" && msg.isStreaming);
-      if(lastAssistant){
+      if (lastAssistant) {
         lastAssistant.isStreaming = false;
         lastAssistant.content = lastAssistant.content || "發生錯誤，請再試一次。";
         lastAssistant.tokenCount = estimateTokens(lastAssistant.content);
       }
       conversation.updatedAt = Date.now();
-    }finally{
+    } finally {
       sending.value = false;
     }
   }
@@ -368,18 +409,18 @@ export const useChatStore = defineStore("chat", () => {
     error.value = null;
     targetConversation.messages = [...historyBeforeAssistant];
     targetConversation.updatedAt = Date.now();
-    try{
+    try {
       await generateAssistantReply(
         targetConversation,
         historyBeforeAssistant,
         userMessage.content
       );
-    }catch (e){
-      if(isAbortError(e)){
+    } catch (e) {
+      if (isAbortError(e)) {
         const lastAssistant = [...targetConversation.messages]
           .reverse()
           .find((msg) => msg.role === "assistant" && msg.isStreaming);
-        if (lastAssistant){
+        if (lastAssistant) {
           lastAssistant.isStreaming = false;
           lastAssistant.tokenCount = estimateTokens(lastAssistant.content);
         }
@@ -390,14 +431,13 @@ export const useChatStore = defineStore("chat", () => {
       const lastAssistant = [...targetConversation.messages]
         .reverse()
         .find((msg) => msg.role === "assistant" && msg.isStreaming);
-      if(lastAssistant){
+      if (lastAssistant) {
         lastAssistant.isStreaming = false;
-        lastAssistant.content =
-          lastAssistant.content || "發生錯誤，請稍後再試一次。";
+        lastAssistant.content = lastAssistant.content || "發生錯誤，請稍後再試一次。";
         lastAssistant.tokenCount = estimateTokens(lastAssistant.content);
       }
       targetConversation.updatedAt = Date.now();
-    }finally{
+    } finally {
       sending.value = false;
     }
   }
@@ -407,7 +447,7 @@ export const useChatStore = defineStore("chat", () => {
     [conversations, activeConversationId],
     () => {
       if (sending.value) return;
-      if (persistTimer){
+      if (persistTimer) {
         window.clearTimeout(persistTimer);
       }
       persistTimer = window.setTimeout(() => {

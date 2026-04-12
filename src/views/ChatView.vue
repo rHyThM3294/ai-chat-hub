@@ -179,12 +179,11 @@ function closeSidebar(){
   sidebarOpen.value = false;
 }
 watch(
-  () => chat.messages,
+  () => chat.messages.map(m => m.content).join('').length,
   async () => {
     await nextTick();
     scrollToBottom();
-  },
-  { deep: true }
+  }
 );
 watch(
   () => chat.error,
