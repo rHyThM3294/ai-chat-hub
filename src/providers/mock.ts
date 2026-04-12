@@ -31,6 +31,7 @@ export const mockProvider: ChatProvider = {
         handlers.onAbort?.();
         throw new DOMException("Aborted", "AbortError");
       }
+      console.log('送出 token:',token)
       handlers.onToken(token);
       await sleep(28);
     }

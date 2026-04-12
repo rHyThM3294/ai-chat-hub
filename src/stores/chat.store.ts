@@ -294,20 +294,20 @@ export const useChatStore = defineStore("chat", () => {
             targetConversation.updatedAt = Date.now()
           }
         });
-      } else {
+      }else{
         const res = await p.send(input, history);
         botMsg.content = res.assistantText;
         botMsg.tokenCount = estimateTokens(res.assistantText);
         botMsg.isStreaming = false;
         targetConversation.updatedAt = Date.now();
       }
-    } finally {
-      if (currentAbortController.value === controller) {
+    } finally{
+      if(currentAbortController.value === controller){
         currentAbortController.value = null;
       }
     }
   }
-  async function editUserMessageAndResend(messageId: string, newContent: string) {
+  async function editUserMessageAndResend(messageId: string, newContent: string){
     const conversation = activeConversation.value;
     if (!conversation || sending.value) return;
     const nextContent = newContent.trim();
