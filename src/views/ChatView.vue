@@ -181,8 +181,8 @@ function closeSidebar(){
 watch(
   () => chat.messages.map(m => m.content).join('').length,
   async () => {
-    await nextTick();
-    scrollToBottom();
+    await nextTick()
+    scrollToBottom()
   }
 );
 watch(

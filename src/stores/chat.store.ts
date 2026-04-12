@@ -45,33 +45,6 @@ function loadPersistedState(): PersistedChatState | null {
 function savePersistedState(state: PersistedChatState) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
 }
-
-// 批次更新 helper，避免每個 token 都觸發 Vue 響應式更新
-function createTokenHandler(
-  botMsg: ChatMessage,
-  targetConversation: ChatConversation
-) {
-  let rafId: number | null = null;
-  let pendingContent = "";
-  return {
-    onToken(token: string){
-      pendingContent += token;
-      if(rafId !== null)return;
-      rafId = requestAnimationFrame(() => {
-        botMsg.content = pendingContent;
-        targetConversation.updatedAt = Date.now();
-        rafId = null;
-      });
-    },
-    flush(){
-      if(rafId !== null){
-        cancelAnimationFrame(rafId);
-        rafId = null;
-      }
-      botMsg.content = pendingContent;
-    },
-  };
-}
 export const useChatStore = defineStore("chat", () => {
   const persisted = loadPersistedState();
   const conversations = ref<ChatConversation[]>(
@@ -227,24 +200,21 @@ export const useChatStore = defineStore("chat", () => {
       targetConversation.messages.push(botMsg);
       targetConversation.updatedAt = Date.now();
       if (p.stream){
-        const handler = createTokenHandler(botMsg, targetConversation);
         await p.stream(input, history, {
-          signal: controller.signal,
+          signal:controller.signal,
           onToken(token){
-            handler.onToken(token);
+            botMsg.content += token
           },
           onDone(){
-            handler.flush();
-            botMsg.isStreaming = false;
-            botMsg.tokenCount = estimateTokens(botMsg.content);
-            targetConversation.updatedAt = Date.now();
+            botMsg.isStreaming = false 
+            botMsg.tokenCount = estimateTokens(botMsg.content)
+            targetConversation.updatedAt = Date.now()
           },
           onAbort(){
-            handler.flush();
-            botMsg.isStreaming = false;
-            botMsg.tokenCount = estimateTokens(botMsg.content);
-            targetConversation.updatedAt = Date.now();
-          },
+            botMsg.isStreaming = false
+            botMsg.tokenCount = estimateTokens(botMsg.content)
+            targetConversation.updatedAt = Date.now()
+          }
         });
       }else{
         const res = await p.send(input, history);
@@ -308,24 +278,21 @@ export const useChatStore = defineStore("chat", () => {
     targetConversation.updatedAt = Date.now();
     try{
       if (p.stream){
-        const handler = createTokenHandler(botMsg, targetConversation);
         await p.stream(input, history, {
-          signal: controller.signal,
+          signal:controller.signal,
           onToken(token){
-            handler.onToken(token);
+            botMsg.content += token
           },
           onDone(){
-            handler.flush();
-            botMsg.isStreaming = false;
-            botMsg.tokenCount = estimateTokens(botMsg.content);
-            targetConversation.updatedAt = Date.now();
+            botMsg.isStreaming = false
+            botMsg.tokenCount = estimateTokens(botMsg.content)
+            targetConversation.updatedAt = Date.now()
           },
           onAbort(){
-            handler.flush();
-            botMsg.isStreaming = false;
-            botMsg.tokenCount = estimateTokens(botMsg.content);
-            targetConversation.updatedAt = Date.now();
-          },
+            botMsg.isStreaming = false
+            botMsg.tokenCount = estimateTokens(botMsg.content)
+            targetConversation.updatedAt = Date.now()
+          }
         });
       } else {
         const res = await p.send(input, history);
