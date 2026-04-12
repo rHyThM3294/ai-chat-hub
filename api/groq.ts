@@ -1,5 +1,11 @@
 type Role = "user" | "assistant" | "system";
 type ChatMessage = { role: Role; content: string };
+export const config = {
+  api: {
+    bodyParser: true,
+    responseLimit: false,
+  },
+};
 export default async function handler(req: any, res: any) {
   let streamingStarted = false;  // 追蹤是否已開始串流
   try {
