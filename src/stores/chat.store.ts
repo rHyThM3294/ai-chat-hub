@@ -152,35 +152,60 @@ export const useChatStore = defineStore("chat", () => {
     if (last && last.role === "assistant") return last;
     return null;
   }
-  function createDisplayQueue(intervalMs = 30){
-    let queue:string[] = [];
-    let timer:number | null = null;
-    let onFlush:((token:string) => void) | null = null;
-    function start(flush:(token:string) => void){
-      onFlush = flush;
-      if(timer !== null)return;
-      timer = window.setInterval(() => {
-        const token = queue.shift();
-        if(token !== undefined){
-          onFlush?.(token);
-        }
-      },intervalMs);
-    }
-    function push(token:string){
-      queue.push(token);
-    }
-    function stop(){
-      if(timer !== null){
+function createDisplayQueue(intervalMs = 30){
+  let queue: string[] = [];
+  let timer: number | null = null;
+  let onFlush: ((token: string) => void) | null = null;
+  let onEmpty: (() => void) | null = null;
+  function start(flush: (token: string) => void){
+    onFlush = flush;
+    if (timer !== null) return;
+    timer = window.setInterval(() => {
+      const token = queue.shift();
+      if (token !== undefined){
+        onFlush?.(token);
+      }
+      // 佇列清空且已標記結束，才呼叫 onEmpty
+      if(queue.length === 0 && onEmpty){
+        onEmpty();
+        onEmpty = null;
+      }
+    }, intervalMs);
+  }
+  function push(token: string){
+    queue.push(token);
+  }
+
+  // 不立刻清空，等佇列跑完才執行 callback
+  function drain(callback: () => void){
+    if(queue.length === 0){
+      // 佇列已空，直接執行
+      if (timer !== null) {
         window.clearInterval(timer);
         timer = null;
       }
-      if(onFlush){
-        queue.forEach(t => onFlush?.(t));
-      }
-      queue = [];
+      callback();
+    }else{
+      // 佇列還有字，等跑完再執行
+      onEmpty = () => {
+        if(timer !== null){
+          window.clearInterval(timer);
+          timer = null;
+        }
+        callback();
+      };
     }
-    return{push,start,stop};
   }
+  function abort(){
+    // 強制停止，清空佇列（用於中止生成）
+    if(timer !== null){
+      window.clearInterval(timer);
+      timer = null;
+    }
+    queue = [];
+  }
+  return{ push, start, drain, abort };
+}
   async function sendUserText(userText: string){
     const text = userText.trim();
     if (!text || sending.value) return;
@@ -190,7 +215,6 @@ export const useChatStore = defineStore("chat", () => {
     const controller = new AbortController();
     currentAbortController.value = controller;
     const targetConversation = activeConversation.value;
-
     const userMsg: ChatMessage = {
       id: uid("u"),
       role: "user",
@@ -223,30 +247,31 @@ export const useChatStore = defineStore("chat", () => {
         isStreaming: true,
       });
       targetConversation.updatedAt = Date.now();
-      if (p.stream) {
+      if(p.stream){
         const queue = createDisplayQueue(30);
         queue.start((token) => {
           const last = getLastAssistantMsg(targetConversation);
-          if (last) last.content += token;
+          if(last)last.content += token;
         });
-        await p.stream(input, history, {
-          signal: controller.signal,
-          onToken(token) {
+        await p.stream(input,history,{
+          signal:controller.signal,
+          onToken(token){
             queue.push(token);
           },
-          onDone() {
-            queue.stop();
-            const last = getLastAssistantMsg(targetConversation);
-            if (last) {
-              last.isStreaming = false;
-              last.tokenCount = estimateTokens(last.content);
-            }
-            targetConversation.updatedAt = Date.now();
+          onDone(){
+            queue.drain(() => {
+              const last = getLastAssistantMsg(targetConversation);
+              if(last){
+                last.isStreaming = false;
+                last.tokenCount = estimateTokens(last.content);
+              }
+              targetConversation.updatedAt = Date.now();
+            });
           },
-          onAbort() {
-            queue.stop();
+          onAbort(){
+            queue.abort();
             const last = getLastAssistantMsg(targetConversation);
-            if (last) {
+            if(last){
               last.isStreaming = false;
               last.tokenCount = estimateTokens(last.content);
             }
@@ -326,22 +351,23 @@ export const useChatStore = defineStore("chat", () => {
           const last = getLastAssistantMsg(targetConversation);
           if (last) last.content += token;
         });
-        await p.stream(input, history, {
-          signal: controller.signal,
-          onToken(token) {
+        await p.stream(input,history,{
+          signal:controller.signal,
+          onToken(token){
             queue.push(token);
           },
           onDone(){
-            queue.stop();
-            const last = getLastAssistantMsg(targetConversation);
-            if (last){
-              last.isStreaming = false;
-              last.tokenCount = estimateTokens(last.content);
-            }
-            targetConversation.updatedAt = Date.now();
+            queue.drain(() => {
+              const last = getLastAssistantMsg(targetConversation);
+              if(last){
+                last.isStreaming = false;
+                last.tokenCount = estimateTokens(last.content);
+              }
+              targetConversation.updatedAt = Date.now();
+            });
           },
           onAbort(){
-            queue.stop();
+            queue.abort();
             const last = getLastAssistantMsg(targetConversation);
             if(last){
               last.isStreaming = false;
