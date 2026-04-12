@@ -158,22 +158,48 @@ export const useChatStore = defineStore("chat", () => {
     activeConversation.value.updatedAt = Date.now();
     error.value = null;
   }
-
-  function isAbortError(err: unknown) {
-    return (
+  function isAbortError(err: unknown){
+    return(
       (err instanceof DOMException && err.name === "AbortError") ||
       (err instanceof Error && err.name === "AbortError")
     );
   }
-
   // 從響應式陣列取得最後一個 assistant 訊息（讓 Vue Proxy 能追蹤變化）
   function getLastAssistantMsg(targetConversation: ChatConversation): ChatMessage | null {
     const last = targetConversation.messages[targetConversation.messages.length - 1];
     if (last && last.role === "assistant") return last;
     return null;
   }
-
-  async function sendUserText(userText: string) {
+  function createDisplayQueue(intervalMs = 30){
+    let queue:string[] = [];
+    let timer:number | null = null;
+    let onFlush:((token:string) => void) | null = null;
+    function start(flush:(token:string) => void){
+      onFlush = flush;
+      if(timer !== null)return;
+      timer = window.setInterval(() => {
+        const token = queue.shift();
+        if(token !== undefined){
+          onFlush?.(token);
+        }
+      },intervalMs);
+    }
+    function push(token:string){
+      queue.push(token);
+    }
+    function stop(){
+      if(timer !== null){
+        window.clearInterval(timer);
+        timer = null;
+      }
+      if(onFlush){
+        queue.forEach(t => onFlush?.(t));
+      }
+      queue = [];
+    }
+    return{push,start,stop};
+  }
+  async function sendUserText(userText: string){
     const text = userText.trim();
     if (!text || sending.value) return;
     if (!activeConversation.value) return;
