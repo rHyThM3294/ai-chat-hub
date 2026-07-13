@@ -140,6 +140,9 @@ export const useChatStore = defineStore("chat", () => {
     activeConversation.value.updatedAt = Date.now();
     error.value = null;
   }
+  function dismissError() {
+    error.value = null;
+  }
   function isAbortError(err: unknown) {
     return (
       (err instanceof DOMException && err.name === "AbortError") ||
@@ -483,6 +486,7 @@ export const useChatStore = defineStore("chat", () => {
     deleteConversation,
     renameConversation,
     resetConversation,
+    dismissError,
     sendUserText,
     editUserMessageAndResend,
     regenerateAssistantMessage,

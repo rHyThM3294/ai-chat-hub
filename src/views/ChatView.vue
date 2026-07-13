@@ -45,6 +45,28 @@
           </button>
         </div>
       </header>
+      <div v-if="chat.error" class="errorBanner" role="alert">
+        <i class="fa-solid fa-triangle-exclamation errorBannerIcon"></i>
+        <span class="errorBannerText">{{ friendlyError }}</span>
+        <div class="errorBannerActions">
+          <button
+            v-if="canRetryError"
+            type="button"
+            class="errorRetryButton"
+            @click="retryLastFailed"
+          >
+            重試
+          </button>
+          <button
+            type="button"
+            class="errorDismissButton"
+            aria-label="關閉錯誤提示"
+            @click="chat.dismissError()"
+          >
+            ✕
+          </button>
+        </div>
+      </div>
       <section ref="conversationRef" class="conversation">
         <p v-if="chat.messages.length === 0" class="hint">
           目前使用 {{ chat.provider }} provider。
@@ -75,7 +97,6 @@
             />
           </div>
         </div>
-        <p v-if="chat.error" class="errorMessage">錯誤：{{ chat.error }}</p>
       </section>
       <footer class="user">
         <div v-if="pendingImages.length > 0" class="pendingImages">
@@ -141,6 +162,7 @@
 import { computed, nextTick, onMounted, onBeforeUnmount, ref, watch } from "vue";
 import { useChatStore } from "@/stores/chat.store";
 import { useTheme } from "@/composables/useTheme";
+import { humanizeError } from "@/utils/errorMessage";
 import type { ChatImageAttachment, ChatMessage } from "@/types/chat";
 import { uid } from "@/types/chat";
 import MessageContent from "@/components/chat/MessageContent.vue";
@@ -159,6 +181,15 @@ const MAX_IMAGES = 3;
 const MAX_IMAGE_BYTES = 3 * 1024 * 1024;
 const canSend = computed(() => input.value.trim().length > 0 && !chat.sending);
 const canStop = computed(() => chat.sending);
+const friendlyError = computed(() => humanizeError(chat.error));
+const lastMessage = computed(() => chat.messages[chat.messages.length - 1] ?? null);
+const canRetryError = computed(
+  () => !!chat.error && lastMessage.value?.role === "assistant" && !chat.sending
+);
+function retryLastFailed() {
+  if (!lastMessage.value) return;
+  chat.regenerateAssistantMessage(lastMessage.value.id);
+}
 function fileToDataUrl(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -381,6 +412,7 @@ onBeforeUnmount(() => {
   transition: all ease 300ms;
 }
 .topBlock,
+.errorBanner,
 .conversation,
 .user {
   width: min(92%, 1100px);
@@ -527,6 +559,61 @@ onBeforeUnmount(() => {
   color: var(--color-error);
   font-weight: 700;
   padding: 0.5em 0;
+}
+.errorBanner {
+  display: flex;
+  align-items: center;
+  gap: 0.6em;
+  margin-top: 0.9em;
+  padding: 0.75em 1em;
+  border-radius: 0.8em;
+  border: 1px solid var(--color-error);
+  background-color: var(--color-bg-elevated);
+  color: var(--color-error);
+}
+.errorBannerIcon {
+  flex-shrink: 0;
+}
+.errorBannerText {
+  flex: 1;
+  font-weight: 600;
+  line-height: 1.5;
+}
+.errorBannerActions {
+  display: flex;
+  align-items: center;
+  gap: 0.5em;
+  flex-shrink: 0;
+}
+.errorRetryButton {
+  border: 1px solid var(--color-error);
+  border-radius: 8px;
+  padding: 0.4em 0.9em;
+  background-color: transparent;
+  color: var(--color-error);
+  font-weight: 600;
+  cursor: pointer;
+  transition: all ease 200ms;
+}
+.errorRetryButton:hover {
+  background-color: var(--color-error);
+  color: var(--color-accent-contrast);
+}
+.errorDismissButton {
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 8px;
+  background-color: transparent;
+  color: var(--color-error);
+  cursor: pointer;
+  transition: all ease 200ms;
+}
+.errorDismissButton:hover {
+  background-color: var(--color-action-btn-bg-hover);
 }
 .user {
   position: sticky;

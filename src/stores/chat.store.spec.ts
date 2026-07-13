@@ -172,4 +172,11 @@ describe("sendUserText with the mock provider", () => {
     const assistantMessage = chat.messages.find((m) => m.role === "assistant");
     expect(assistantMessage?.isStreaming).toBe(false);
   });
+
+  it("dismissError clears the error message", () => {
+    const chat = useChatStore();
+    chat.error = "some error";
+    chat.dismissError();
+    expect(chat.error).toBeNull();
+  });
 });

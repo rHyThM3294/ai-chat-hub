@@ -41,4 +41,22 @@ test.describe("AI Chat Hub", () => {
     await expect(page.locator(".messageRow.isUser .messageImage")).toBeVisible();
     await expect(page.locator(".messageRow.isAssistant")).toContainText("收到 1 張圖片");
   });
+
+  test("shows a friendly error banner with retry/dismiss when a request fails", async ({
+    page,
+  }) => {
+    await page.goto("/");
+    // the Groq provider hits /api/groq, which doesn't exist under `vite preview`,
+    // so this reliably reproduces a real failed-request scenario
+    await page.selectOption(".model", "groq");
+    await page.fill(".userText", "哈囉");
+    await page.click(".sendButton");
+
+    const banner = page.locator(".errorBanner");
+    await expect(banner).toBeVisible();
+    await expect(banner).not.toContainText("API error");
+
+    await page.click(".errorDismissButton");
+    await expect(banner).toBeHidden();
+  });
 });
