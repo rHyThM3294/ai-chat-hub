@@ -7,21 +7,21 @@ export const config = {
   },
 };
 
-function transformMessages(messages: ChatMessage[]){
+function transformMessages(messages: ChatMessage[]) {
   return messages.map((m) => ({
     role: m.role,
     content: m.content,
   }));
 }
-git reset --hard 9e80ec7
-export default async function handler(req: any, res: any){
+
+export default async function handler(req: any, res: any) {
   let clientClosed = false;
-  try{
+  try {
     if (req.method !== "POST") {
       return res.status(405).json({ error: "Method Not Allowed" });
     }
     const apiKey = process.env.OPENAI_API_KEY;
-    if (!apiKey){
+    if (!apiKey) {
       return res.status(500).json({ error: "Missing OPENAI_API_KEY" });
     }
     const body = typeof req.body === "string" ? JSON.parse(req.body) : req.body;
@@ -33,7 +33,7 @@ export default async function handler(req: any, res: any){
     }
     const { default: OpenAI } = await import("openai");
     const client = new OpenAI({ apiKey });
-    if (!stream){
+    if (!stream) {
       const completion = await client.chat.completions.create({
         model,
         messages: transformMessages(messages),

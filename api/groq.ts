@@ -7,7 +7,7 @@ export const config = {
   },
 };
 export default async function handler(req: any, res: any) {
-  let streamingStarted = false;  // 追蹤是否已開始串流
+  let streamingStarted = false; // 追蹤是否已開始串流
   try {
     if (req.method !== "POST") {
       return res.status(405).json({ error: "Method Not Allowed" });
@@ -15,7 +15,7 @@ export default async function handler(req: any, res: any) {
     const apiKey = process.env.GROQ_API_KEY;
     if (!apiKey) {
       return res.status(500).json({ error: "Missing GROQ_API_KEY" });
-      console.log('API Key:', apiKey) // 先印出來確認有沒有值
+      console.log("API Key:", apiKey); // 先印出來確認有沒有值
     }
     let body;
     try {
@@ -53,7 +53,7 @@ export default async function handler(req: any, res: any) {
       Connection: "keep-alive",
     });
     res.flushHeaders();
-    streamingStarted = true;  // 標記已開始串流
+    streamingStarted = true; // 標記已開始串流
     const reader = upstream.body?.getReader();
     if (!reader) {
       res.write(`data: ${JSON.stringify({ error: "No upstream reader" })}\n\n`);
@@ -73,7 +73,7 @@ export default async function handler(req: any, res: any) {
         const data = trimmed.replace(/^data:\s*/, "");
         if (data === "[DONE]") {
           res.write(`data: ${JSON.stringify({ done: true })}\n\n`);
-          return res.end();  // 直接結束，避免重複
+          return res.end(); // 直接結束，避免重複
         }
         try {
           const json = JSON.parse(data);
@@ -81,14 +81,14 @@ export default async function handler(req: any, res: any) {
           if (token) {
             res.write(`data: ${JSON.stringify({ token })}\n\n`);
           }
-        }catch{
+        } catch {
           // 忽略解析失敗的小片段
         }
       }
     }
     res.write(`data: ${JSON.stringify({ done: true })}\n\n`);
     res.end();
-  } catch (err: any){
+  } catch (err: any) {
     console.error("api/groq stream error:", err);
     if (streamingStarted) {
       // 如果已開始串流，將錯誤寫入串流

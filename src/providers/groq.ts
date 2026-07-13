@@ -15,14 +15,14 @@ export const groqProvider: ChatProvider = {
         })),
       }),
     });
-    if (!r.ok){
+    if (!r.ok) {
       const t = await r.text().catch(() => "");
       throw new Error(`Groq API error (${r.status}): ${t || r.statusText}`);
     }
     const data = (await r.json()) as { assistantText: string };
-    return{ assistantText: data.assistantText || "" };
+    return { assistantText: data.assistantText || "" };
   },
-  async stream(input: ChatSendInput, history: ChatMessage[], handlers){
+  async stream(input: ChatSendInput, history: ChatMessage[], handlers) {
     const r = await fetch("/api/groq", {
       method: "POST",
       headers: { "content-type": "application/json" },
@@ -38,50 +38,50 @@ export const groqProvider: ChatProvider = {
         })),
       }),
     });
-    if(!r.ok){
+    if (!r.ok) {
       const t = await r.text().catch(() => "");
       throw new Error(`Groq API error (${r.status}): ${t || r.statusText}`);
     }
     const reader = r.body?.getReader();
-    if(!reader){
+    if (!reader) {
       throw new Error("No response body");
     }
     const decoder = new TextDecoder();
     let buffer = "";
-    try{
-      while(true){
-        if(handlers.signal?.aborted){
+    try {
+      while (true) {
+        if (handlers.signal?.aborted) {
           handlers.onAbort?.();
           throw new DOMException("Aborted", "AbortError");
         }
-        const{ value, done } = await reader.read();
-        if(done)break;
+        const { value, done } = await reader.read();
+        if (done) break;
         buffer += decoder.decode(value, { stream: true });
         const chunks = buffer.split("\n\n");
         buffer = chunks.pop() || "";
-        for(const chunk of chunks){
+        for (const chunk of chunks) {
           const line = chunk.trim();
-          if(!line.startsWith("data:"))continue;
+          if (!line.startsWith("data:")) continue;
           const raw = line.replace(/^data:\s*/, "");
-          try{
+          try {
             const json = JSON.parse(raw);
-            if (json.token){
+            if (json.token) {
               handlers.onToken(json.token);
             }
-            if (json.done){
+            if (json.done) {
               handlers.onDone?.();
               return;
             }
-            if (json.error){
+            if (json.error) {
               throw new Error(json.error);
             }
-          }catch(error){
-            if(error instanceof Error) throw error;
+          } catch (error) {
+            if (error instanceof Error) throw error;
           }
         }
       }
       handlers.onDone?.();
-    }finally{
+    } finally {
       reader.releaseLock();
     }
   },

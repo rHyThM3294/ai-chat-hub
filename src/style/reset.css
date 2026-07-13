@@ -25,10 +25,21 @@ html {
 
 body {
   min-height: 100vh;
-  font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans TC",
-    "Helvetica Neue", Arial, "Apple Color Emoji", "Segoe UI Emoji";
-  color: #111;
-  background: #fff;
+  font-family:
+    system-ui,
+    -apple-system,
+    "Segoe UI",
+    Roboto,
+    "Noto Sans TC",
+    "Helvetica Neue",
+    Arial,
+    "Apple Color Emoji",
+    "Segoe UI Emoji";
+  color: var(--color-text, #111);
+  background: var(--color-bg, #fff);
+  transition:
+    background-color 200ms ease,
+    color 200ms ease;
 
   /* 文字渲染優化（可選） */
   -webkit-font-smoothing: antialiased;

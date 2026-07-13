@@ -4,22 +4,15 @@
       type="button"
       class="sidebarToggle"
       :class="{ isHidden: sidebarOpen }"
-      @click="openSidebar"
       aria-label="開啟聊天室側欄"
+      @click="openSidebar"
     >
       <span></span>
       <span></span>
       <span></span>
     </button>
-    <div
-      class="sidebarOverlay"
-      :class="{ isVisible: sidebarOpen }"
-      @click="closeSidebar"
-    ></div>
-    <aside
-      class="sidebarPanel"
-      :class="{ isOpen: sidebarOpen }"
-    >
+    <div class="sidebarOverlay" :class="{ isVisible: sidebarOpen }" @click="closeSidebar"></div>
+    <aside class="sidebarPanel" :class="{ isOpen: sidebarOpen }">
       <ConversationSidebar @close-sidebar="closeSidebar" />
     </aside>
     <section class="artificialIntelligence">
@@ -41,9 +34,13 @@
           </select>
           <button
             type="button"
-            @click="chat.createNewConversation()"
-            class="newChat"
+            class="themeToggle"
+            :aria-label="theme === 'dark' ? '切換為亮色主題' : '切換為暗色主題'"
+            @click="toggleTheme"
           >
+            <i :class="theme === 'dark' ? 'fa-solid fa-sun' : 'fa-solid fa-moon'"></i>
+          </button>
+          <button type="button" class="newChat" @click="chat.createNewConversation()">
             新對話
           </button>
         </div>
@@ -60,7 +57,7 @@
         >
           <div class="allMessage">
             <div class="messageBox">
-              <span>{{ m.role === 'user' ? '你' : '機器人' }}</span>
+              <span>{{ m.role === "user" ? "你" : "機器人" }}</span>
               <div class="messageMeta">
                 <span class="messageToken">≈{{ m.tokenCount ?? 0 }} tokens</span>
                 <span class="messageTime">
@@ -111,10 +108,12 @@
 <script setup lang="ts">
 import { computed, nextTick, onMounted, onBeforeUnmount, ref, watch } from "vue";
 import { useChatStore } from "@/stores/chat.store";
+import { useTheme } from "@/composables/useTheme";
 import type { ChatMessage } from "@/types/chat";
 import MessageContent from "@/components/chat/MessageContent.vue";
 import ConversationSidebar from "@/components/chat/ConversationSidebar.vue";
 const chat = useChatStore();
+const { theme, toggleTheme } = useTheme();
 const input = ref("");
 const textareaRef = ref<HTMLTextAreaElement | null>(null);
 const conversationRef = ref<HTMLElement | null>(null);
@@ -122,7 +121,7 @@ const sidebarOpen = ref(false);
 const isDesktop = ref(false);
 const canSend = computed(() => input.value.trim().length > 0 && !chat.sending);
 const canStop = computed(() => chat.sending);
-function resizeTextarea(){
+function resizeTextarea() {
   const el = textareaRef.value;
   if (!el) return;
   el.style.height = "auto";
@@ -130,7 +129,7 @@ function resizeTextarea(){
   el.style.height = `${Math.min(el.scrollHeight, maxHeight)}px`;
   el.style.overflowY = el.scrollHeight > maxHeight ? "auto" : "hidden";
 }
-function scrollToBottom(smooth = true){
+function scrollToBottom(smooth = true) {
   const el = conversationRef.value;
   if (!el) return;
   el.scrollTo({
@@ -138,24 +137,24 @@ function scrollToBottom(smooth = true){
     behavior: smooth ? "smooth" : "auto",
   });
 }
-function handleInput(){
+function handleInput() {
   resizeTextarea();
 }
-function handleKeydown(e: KeyboardEvent){
+function handleKeydown(e: KeyboardEvent) {
   if (e.key !== "Enter") return;
   if (e.shiftKey) return;
   e.preventDefault();
-  if(canStop.value){
+  if (canStop.value) {
     stopGenerating();
     return;
   }
   send();
 }
-function handleRegenerate(message: ChatMessage){
+function handleRegenerate(message: ChatMessage) {
   if (message.role !== "assistant") return;
   chat.regenerateAssistantMessage?.(message.id);
 }
-async function send(){
+async function send() {
   if (!canSend.value) return;
   const text = input.value.trim();
   if (!text) return;
@@ -165,24 +164,24 @@ async function send(){
   await nextTick();
   scrollToBottom();
 }
-function stopGenerating(){
+function stopGenerating() {
   if (!canStop.value) return;
   chat.stopGenerating();
 }
-function syncViewportState(){
+function syncViewportState() {
   isDesktop.value = window.innerWidth > 768;
 }
-function openSidebar(){
+function openSidebar() {
   sidebarOpen.value = true;
 }
-function closeSidebar(){
+function closeSidebar() {
   sidebarOpen.value = false;
 }
 watch(
-  () => chat.messages.map(m => m.content).join('').length,
+  () => chat.messages.map((m) => m.content).join("").length,
   async () => {
-    await nextTick()
-    scrollToBottom()
+    await nextTick();
+    scrollToBottom();
   }
 );
 watch(
@@ -197,7 +196,7 @@ watch(
   async () => {
     await nextTick();
     scrollToBottom(false);
-    if (!isDesktop.value){
+    if (!isDesktop.value) {
       sidebarOpen.value = false;
     }
   }
@@ -213,14 +212,15 @@ onBeforeUnmount(() => {
 });
 </script>
 <style scoped>
-.chatLayout{
+.chatLayout {
   width: 100%;
   min-height: 100vh;
   position: relative;
   display: flex;
-  background-color: #ffffff;
+  background-color: var(--color-bg);
+  color: var(--color-text);
 }
-.sidebarToggle{
+.sidebarToggle {
   position: fixed;
   top: 14px;
   left: 14px;
@@ -238,18 +238,18 @@ onBeforeUnmount(() => {
   cursor: pointer;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.16);
 }
-.sidebarToggle span{
+.sidebarToggle span {
   display: block;
   width: 100%;
   height: 2px;
   border-radius: 999px;
   background-color: #ffffff;
 }
-.sidebarToggle.isHidden{
+.sidebarToggle.isHidden {
   opacity: 0;
   pointer-events: none;
 }
-.sidebarOverlay{
+.sidebarOverlay {
   position: fixed;
   inset: 0;
   z-index: 1050;
@@ -258,18 +258,18 @@ onBeforeUnmount(() => {
   pointer-events: none;
   transition: opacity 300ms ease;
 }
-.sidebarOverlay.isVisible{
+.sidebarOverlay.isVisible {
   opacity: 1;
   pointer-events: auto;
 }
-.sidebarPanel{
+.sidebarPanel {
   position: fixed;
   top: 0;
   left: 0;
   z-index: 1100;
   width: min(84vw, 300px);
   height: 100vh;
-  background-color: #ffffff;
+  background-color: var(--color-surface);
   box-shadow: 12px 0 30px rgba(0, 0, 0, 0.12);
   transform: translateX(-100%);
   transition: transform 300ms ease;
@@ -277,17 +277,17 @@ onBeforeUnmount(() => {
   display: flex;
   flex-direction: column;
 }
-.sidebarPanel.isOpen{
+.sidebarPanel.isOpen {
   transform: translateX(0);
 }
-.sidebarPanelHeader{
+.sidebarPanelHeader {
   display: flex;
   justify-content: flex-end;
   padding: 12px 12px 0;
-  background-color: #fafafa;
-  border-bottom: 1px solid #ececec;
+  background-color: var(--color-bg-elevated);
+  border-bottom: 1px solid var(--color-border);
 }
-.sidebarClose{
+.sidebarClose {
   width: 40px;
   height: 40px;
   border: none;
@@ -296,7 +296,7 @@ onBeforeUnmount(() => {
   font-size: 20px;
   cursor: pointer;
 }
-.artificialIntelligence{
+.artificialIntelligence {
   flex: 1;
   min-width: 0;
   min-height: 100vh;
@@ -307,54 +307,67 @@ onBeforeUnmount(() => {
   padding: 4.5em 0 1.5em;
   transition: all ease 300ms;
 }
-.topBlock,.conversation,.user{
+.topBlock,
+.conversation,
+.user {
   width: min(92%, 1100px);
   margin: 0 auto;
 }
-.topBlock{
+.topBlock {
   display: flex;
   flex-flow: column nowrap;
   gap: 0.9em;
 }
-.titleRow{
+.titleRow {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
   gap: 1em;
 }
-.titleGroup{
+.titleGroup {
   min-width: 0;
 }
 .titleText {
   margin: 0;
   font-size: 1.5rem;
 }
-.providerText,.tokenText{
+.providerText,
+.tokenText {
   margin: 0.3em 0 0;
   opacity: 0.7;
 }
-.allModel{
+.allModel {
   display: flex;
   flex-flow: row wrap;
   gap: 0.75em;
 }
-.model{
+.model {
   min-height: 42px;
   background-color: #000000;
   color: #ffffff;
   padding: 0.5em 1em;
   border-radius: 8px;
 }
-.newChat{
+.newChat {
   min-height: 42px;
   padding: 0.5em 1.25em;
   border: none;
   border-radius: 8px;
-  background-color: #8b0000;
-  color: #ffffff;
+  background-color: var(--color-accent);
+  color: var(--color-accent-contrast);
   transition: all ease 300ms;
 }
-.conversation{
+.themeToggle {
+  min-height: 42px;
+  min-width: 42px;
+  padding: 0.5em;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background-color: var(--color-surface);
+  color: var(--color-text);
+  transition: all ease 300ms;
+}
+.conversation {
   flex: 1;
   min-height: 50vh;
   overflow-y: auto;
@@ -364,7 +377,7 @@ onBeforeUnmount(() => {
   padding: 1em 0.25em 0.5em;
   scroll-behavior: smooth;
 }
-.hint{
+.hint {
   font-size: 1em;
   font-weight: 700;
   color: #ff93fd;
@@ -375,13 +388,13 @@ onBeforeUnmount(() => {
   width: 100%;
   display: flex;
 }
-.messageRow.isUser{
+.messageRow.isUser {
   justify-content: flex-end;
 }
-.messageRow.isAssistant{
+.messageRow.isAssistant {
   justify-content: flex-start;
 }
-.allMessage{
+.allMessage {
   max-width: 88%;
   padding: 0.9em 1em;
   border-radius: 1em;
@@ -389,70 +402,70 @@ onBeforeUnmount(() => {
   flex-direction: column;
   gap: 0.4em;
 }
-.messageActions{
+.messageActions {
   display: flex;
   justify-content: flex-end;
   margin-top: 6px;
 }
-.messageActionButton{
+.messageActionButton {
   border: none;
   border-radius: 8px;
   padding: 6px 10px;
   font-size: 12px;
   cursor: pointer;
-  background-color: rgba(0, 0, 0, 0.08);
+  background-color: var(--color-action-btn-bg);
   color: inherit;
   transition: all 250ms ease;
 }
-.messageActionButton:disabled{
+.messageActionButton:disabled {
   cursor: not-allowed;
   opacity: 0.55;
 }
-.messageRow.isUser .allMessage{
-  background-color: #8b0000;
-  color: #ffffff;
+.messageRow.isUser .allMessage {
+  background-color: var(--color-accent);
+  color: var(--color-accent-contrast);
   border-bottom-right-radius: 4px;
 }
-.messageRow.isAssistant .allMessage{
-  background-color: #f3f3f3;
-  color: #222222;
+.messageRow.isAssistant .allMessage {
+  background-color: var(--color-bubble-assistant-bg);
+  color: var(--color-bubble-assistant-text);
   border-bottom-left-radius: 4px;
 }
-.messageBox{
+.messageBox {
   display: flex;
   justify-content: space-between;
   align-items: center;
   gap: 1em;
   font-weight: 700;
 }
-.messageMeta{
+.messageMeta {
   display: flex;
   gap: 0.5em;
   align-items: center;
   flex-wrap: wrap;
 }
-.messageToken,.messageTime{
+.messageToken,
+.messageTime {
   font-size: 0.75em;
   opacity: 0.7;
   font-weight: 400;
 }
-.errorMessage{
-  color: #b00020;
+.errorMessage {
+  color: var(--color-error);
   font-weight: 700;
   padding: 0.5em 0;
 }
-.user{
+.user {
   position: sticky;
   bottom: 0;
   padding-bottom: max(0.5em, env(safe-area-inset-bottom));
-  background:
-    linear-gradient(to top, #ffffff 72%, rgba(255, 255, 255, 0));
+  background: linear-gradient(to top, var(--color-bg) 72%, transparent);
 }
-.inputWrapper{
+.inputWrapper {
   position: relative;
   width: 100%;
 }
-.userText{
+.userText {
   width: 100%;
   min-height: 52px;
   max-height: 180px;
@@ -460,79 +473,83 @@ onBeforeUnmount(() => {
   padding: 0.9em 5.5em 0.9em 1em;
   font-size: 1em;
   border-radius: 1em;
-  border: 1px solid #d7d7d7;
+  border: 1px solid var(--color-border);
   resize: none;
   overflow-y: hidden;
   box-sizing: border-box;
   outline: none;
-  background-color: #ffffff;
+  background-color: var(--color-surface);
+  color: var(--color-text);
 }
-.userText:focus{
-  border-color: #8b0000;
+.userText:focus {
+  border-color: var(--color-accent);
 }
-.sendButton{
+.sendButton {
   position: absolute;
   right: 8px;
   bottom: 12px;
   padding: 0.55em 0.95em;
-  color: #ffffff;
-  background-color: #8b0000;
+  color: var(--color-accent-contrast);
+  background-color: var(--color-accent);
   border: none;
   border-radius: 10px;
   transition: all ease 300ms;
 }
-.sendButton:disabled{
+.sendButton:disabled {
   background-color: #c5c5c5;
   color: #474747;
   opacity: 0.7;
 }
-@media(width > 768px){
-  .sidebarToggle{
+@media (width > 768px) {
+  .sidebarToggle {
     top: 18px;
     left: 18px;
   }
-  .sidebarOverlay{
+  .sidebarOverlay {
     display: none;
   }
-  .sidebarPanel{
+  .sidebarPanel {
     width: 300px;
     box-shadow: none;
-    border-right: 1px solid #ececec;
+    border-right: 1px solid var(--color-border);
   }
-  .sidebarPanelHeader{
+  .sidebarPanelHeader {
     display: none;
   }
-  .artificialIntelligence{
+  .artificialIntelligence {
     margin: 0;
     padding: 2em 0;
     gap: 2em;
   }
-  .sidebarPanel.isOpen ~ .artificialIntelligence{
+  .sidebarPanel.isOpen ~ .artificialIntelligence {
     margin-left: 300px;
   }
-  .conversation{
+  .conversation {
     min-height: 45vh;
     max-height: 58vh;
   }
-  .allMessage{
+  .allMessage {
     max-width: 70%;
   }
-  .hint{
+  .hint {
     font-size: 1.15em;
   }
-  .newChat:hover:not(:disabled){
+  .newChat:hover:not(:disabled) {
     color: gold;
     background-color: #000000;
   }
-  .sendButton:hover:not(:disabled){
+  .themeToggle:hover {
+    background-color: var(--color-hover-surface);
+  }
+  .sendButton:hover:not(:disabled) {
     color: gold;
     background-color: #000000;
   }
   .sidebarClose:hover {
-    background-color: #efefef;
+    background-color: var(--color-hover-surface);
   }
-  .messageActionButton:hover:not(:disabled){
-    background-color: rgba(0, 0, 0, 0.16);
+  .messageActionButton:hover:not(:disabled) {
+    background-color: var(--color-action-btn-bg-hover);
   }
 }
 </style>

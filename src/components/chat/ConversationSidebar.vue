@@ -5,26 +5,17 @@
       <button
         type="button"
         class="sidebarCloseButton"
-        @click="$emit('close-sidebar')"
         aria-label="關閉聊天室側欄"
+        @click="$emit('close-sidebar')"
       >
         ✕
       </button>
     </div>
-    <button
-      type="button"
-      class="newConversationButton"
-      @click="chat.createNewConversation()"
-    >
+    <button type="button" class="newConversationButton" @click="chat.createNewConversation()">
       + 新對話
     </button>
     <div class="searchWrapper">
-      <input
-        v-model="searchText"
-        type="text"
-        class="searchInput"
-        placeholder="搜尋聊天室"
-      />
+      <input v-model="searchText" type="text" class="searchInput" placeholder="搜尋聊天室" />
     </div>
     <div class="conversationList">
       <button
@@ -60,22 +51,13 @@
             </p>
           </template>
           <p class="conversationMeta">
-            {{ item.provider }} ・ {{ item.messages.length }} 則訊息 ・ {{ formatTime(item.updatedAt) }}
+            {{ item.provider }} ・ {{ item.messages.length }} 則訊息 ・
+            {{ formatTime(item.updatedAt) }}
           </p>
         </div>
-        <span
-          class="deleteButton"
-          @click.stop="chat.deleteConversation(item.id)"
-        >
-          ✕
-        </span>
+        <span class="deleteButton" @click.stop="chat.deleteConversation(item.id)"> ✕ </span>
       </button>
-      <p
-        v-if="filteredConversations.length === 0"
-        class="emptySearchText"
-      >
-        找不到符合的聊天室
-      </p>
+      <p v-if="filteredConversations.length === 0" class="emptySearchText">找不到符合的聊天室</p>
     </div>
   </aside>
 </template>
@@ -92,39 +74,36 @@ const editingInputRef = ref<HTMLInputElement | null>(null);
 const searchText = ref("");
 const filteredConversations = computed(() => {
   const keyword = searchText.value.trim().toLowerCase();
-  const sortedConversations = [...chat.conversations].sort(
-    (a, b) => b.updatedAt - a.updatedAt
-  );
-  if(!keyword) return sortedConversations;
+  const sortedConversations = [...chat.conversations].sort((a, b) => b.updatedAt - a.updatedAt);
+  if (!keyword) return sortedConversations;
   return sortedConversations.filter((item) => {
-    return(
-      item.title.toLowerCase().includes(keyword) ||
-      item.provider.toLowerCase().includes(keyword)
+    return (
+      item.title.toLowerCase().includes(keyword) || item.provider.toLowerCase().includes(keyword)
     );
   });
 });
-function handleSelect(id: string){
+function handleSelect(id: string) {
   if (editingId.value) return;
   chat.switchConversation(id);
 }
-async function startEditing(id: string, title: string){
+async function startEditing(id: string, title: string) {
   editingId.value = id;
   editingTitle.value = title;
   await nextTick();
   editingInputRef.value?.focus();
   editingInputRef.value?.select();
 }
-function saveEditing(id: string){
+function saveEditing(id: string) {
   if (editingId.value !== id) return;
   chat.renameConversation(id, editingTitle.value);
   editingId.value = null;
   editingTitle.value = "";
 }
-function cancelEditing(){
+function cancelEditing() {
   editingId.value = null;
   editingTitle.value = "";
 }
-function formatTime(timestamp: number){
+function formatTime(timestamp: number) {
   return new Date(timestamp).toLocaleTimeString("zh-TW", {
     hour: "2-digit",
     minute: "2-digit",
@@ -132,7 +111,7 @@ function formatTime(timestamp: number){
 }
 </script>
 <style scoped>
-.conversationSidebar{
+.conversationSidebar {
   width: 100%;
   min-width: 0;
   height: 100%;
@@ -141,61 +120,62 @@ function formatTime(timestamp: number){
   gap: 12px;
   padding: 16px 12px;
   box-sizing: border-box;
-  background-color: #fafafa;
+  background-color: var(--color-bg-elevated);
+  color: var(--color-text);
 }
-.sidebarTopBar{
+.sidebarTopBar {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
 }
-.sidebarTitle{
+.sidebarTitle {
   margin: 0;
   font-size: 0.95rem;
   font-weight: 700;
-  color: #222;
+  color: var(--color-text);
 }
-.sidebarCloseButton{
+.sidebarCloseButton {
   width: 40px;
   height: 40px;
   flex-shrink: 0;
   border: none;
   border-radius: 10px;
   background-color: transparent;
-  color: #333;
+  color: var(--color-text);
   font-size: 20px;
   cursor: pointer;
   transition: all ease 300ms;
 }
-.newConversationButton{
+.newConversationButton {
   width: 100%;
   min-height: 44px;
   border: none;
   border-radius: 12px;
   padding: 12px;
-  background-color: #8b0000;
-  color: #fff;
+  background-color: var(--color-accent);
+  color: var(--color-accent-contrast);
   cursor: pointer;
   transition: all ease 300ms;
 }
 .searchWrapper {
   width: 100%;
 }
-.searchInput{
+.searchInput {
   width: 100%;
   min-height: 42px;
   padding: 0 12px;
-  border: 1px solid #d7d7d7;
+  border: 1px solid var(--color-border);
   border-radius: 10px;
-  background-color: #fff;
-  color: #222;
+  background-color: var(--color-surface);
+  color: var(--color-text);
   box-sizing: border-box;
   outline: none;
 }
-.searchInput:focus{
-  border-color: #8b0000;
+.searchInput:focus {
+  border-color: var(--color-accent);
 }
-.conversationList{
+.conversationList {
   flex: 1;
   min-height: 0;
   overflow-y: auto;
@@ -204,12 +184,13 @@ function formatTime(timestamp: number){
   gap: 8px;
   padding-right: 2px;
 }
-.conversationItem{
+.conversationItem {
   position: relative;
   width: 100%;
-  border: 1px solid #dedede;
+  border: 1px solid var(--color-border);
   border-radius: 14px;
-  background-color: #fff;
+  background-color: var(--color-surface);
+  color: var(--color-text);
   padding: 12px;
   display: flex;
   justify-content: space-between;
@@ -223,35 +204,38 @@ function formatTime(timestamp: number){
     box-shadow 250ms ease,
     transform 250ms ease;
 }
-.conversationItem.active{
-  border-color: #8b0000;
-  background:
-    linear-gradient(180deg, #fff8f8 0%, #fff2f2 100%);
+.conversationItem.active {
+  border-color: var(--color-accent);
+  background: linear-gradient(
+    180deg,
+    var(--color-accent-soft-1) 0%,
+    var(--color-accent-soft-2) 100%
+  );
   box-shadow:
     0 10px 24px rgba(139, 0, 0, 0.08),
-    inset 3px 0 0 #8b0000;
+    inset 3px 0 0 var(--color-accent);
 }
-.conversationInfo{
+.conversationInfo {
   min-width: 0;
   flex: 1;
 }
-.conversationTitle{
+.conversationTitle {
   margin: 0 0 4px;
   font-weight: 700;
-  color: #222;
+  color: var(--color-text);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
   user-select: none;
 }
-.conversationTitleInput{
+.conversationTitleInput {
   width: 100%;
   margin: 0 0 4px;
   padding: 6px 8px;
-  border: 1px solid #8b0000;
+  border: 1px solid var(--color-accent);
   border-radius: 8px;
-  background-color: #fff;
-  color: #222;
+  background-color: var(--color-surface);
+  color: var(--color-text);
   font-size: 14px;
   font-weight: 700;
   outline: none;
@@ -261,7 +245,7 @@ function formatTime(timestamp: number){
 .conversationMeta {
   margin: 0;
   font-size: 12px;
-  color: #666;
+  color: var(--color-text-muted);
 }
 
 .deleteButton {
@@ -271,7 +255,7 @@ function formatTime(timestamp: number){
   display: grid;
   place-items: center;
   border-radius: 8px;
-  color: #666;
+  color: var(--color-text-muted);
   cursor: pointer;
   line-height: 1;
   opacity: 0;
@@ -293,7 +277,7 @@ function formatTime(timestamp: number){
 .emptySearchText {
   margin: 16px 0 0;
   text-align: center;
-  color: #777;
+  color: var(--color-text-muted);
   font-size: 14px;
 }
 
@@ -304,7 +288,7 @@ function formatTime(timestamp: number){
   }
 
   .sidebarCloseButton:hover {
-    background-color: #efefef;
+    background-color: var(--color-hover-surface);
   }
 
   .conversationItem:hover {

@@ -1,20 +1,15 @@
 <template>
   <div class="messageContentWrap">
     <div class="messageActions">
-      <button
-        type="button"
-        class="messageActionButton"
-        @click="copyMessage"
-        title="複製訊息"
-      >
+      <button type="button" class="messageActionButton" title="複製訊息" @click="copyMessage">
         <i :class="messageCopied ? 'fa-solid fa-check' : 'fa-regular fa-copy'"></i>
       </button>
       <button
         v-if="props.role === 'user' && props.canEdit"
         type="button"
         class="messageActionButton"
-        @click="emit('edit')"
         title="編輯訊息"
+        @click="emit('edit')"
       >
         <i class="fa-solid fa-pen"></i>
       </button>
@@ -22,18 +17,15 @@
         v-if="props.role === 'assistant' && props.canRegenerate"
         type="button"
         class="iconButton"
-        @click="emit('regenerate')"
         title="重新生成"
+        @click="emit('regenerate')"
       >
         <i class="fa-solid fa-rotate-right"></i>
       </button>
     </div>
     <div class="messageContent" :class="{ isStreaming: props.isStreaming }">
-      <div
-        ref="contentRef"
-        class="markdownBody"
-        v-html="renderedHtml"
-      ></div>
+      <!-- eslint-disable-next-line vue/no-v-html -- renderedHtml is sanitized via DOMPurify in renderMarkdown -->
+      <div ref="contentRef" class="markdownBody" v-html="renderedHtml"></div>
       <span
         v-if="props.isStreaming && props.content"
         class="streamCursor"
@@ -65,7 +57,7 @@ const md = new MarkdownIt({
   html: false,
   linkify: true,
   breaks: true,
-  highlight(code, lang){
+  highlight(code, lang) {
     const validLang = !!lang && hljs.getLanguage(lang);
     const highlighted = validLang
       ? hljs.highlight(code, { language: lang }).value
@@ -88,8 +80,8 @@ const md = new MarkdownIt({
   },
 });
 const renderedHtml = computed(() => {
-  if (props.isStreaming){
-    return mdUtils.escapeHtml(props.content || '')
+  if (props.isStreaming) {
+    return mdUtils.escapeHtml(props.content || "");
   }
   return md.render(props.content || "");
 });
@@ -111,32 +103,32 @@ async function copyMessage() {
       messageCopied.value = false;
       messageCopyTimer = null;
     }, 1500);
-  } catch (error){
+  } catch (error) {
     console.error("複製訊息失敗：", error);
   }
 }
-async function copyCodeFromButton(button: HTMLButtonElement){
+async function copyCodeFromButton(button: HTMLButtonElement) {
   const rawCode = button.dataset.code ?? "";
   const code = decodeURIComponent(rawCode);
-  try{
+  try {
     await navigator.clipboard.writeText(code);
     const originalText = button.textContent || "複製";
     button.textContent = "已複製";
     window.setTimeout(() => {
       button.textContent = originalText;
     }, 1200);
-  }catch(error){
+  } catch (error) {
     console.error("複製程式碼失敗：", error);
   }
 }
-function handleContentClick(event: Event){
+function handleContentClick(event: Event) {
   const target = event.target as HTMLElement | null;
   if (!target) return;
   const button = target.closest('[data-code-copy="true"]') as HTMLButtonElement | null;
   if (!button) return;
   copyCodeFromButton(button);
 }
-async function bindRenderedEvents(){
+async function bindRenderedEvents() {
   await nextTick();
   if (!contentRef.value) return;
 }
@@ -156,10 +148,10 @@ onBeforeUnmount(() => {
 });
 </script>
 <style scoped>
-.messageContentWrap{
+.messageContentWrap {
   width: 100%;
 }
-.messageActions{
+.messageActions {
   display: flex;
   justify-content: flex-end;
   margin-bottom: 8px;
@@ -167,31 +159,31 @@ onBeforeUnmount(() => {
   pointer-events: none;
   transition: opacity 0.2s ease;
 }
-.messageContentWrap:hover .messageActions{
+.messageContentWrap:hover .messageActions {
   opacity: 1;
   pointer-events: auto;
 }
-.messageActionButton{
+.messageActionButton {
   border: none;
   border-radius: 999px;
   padding: 6px 12px;
   font-size: 12px;
   line-height: 1;
   cursor: pointer;
-  background-color: #ffffff;
-  color: #000000;
+  background-color: var(--color-surface);
+  color: var(--color-text);
   transition: all 300ms ease;
 }
-.messageContent{
+.messageContent {
   white-space: normal;
   word-break: break-word;
   line-height: 1.7;
 }
-.markdownBody{
+.markdownBody {
   display: inline;
   white-space: pre-wrap;
 }
-.streamCursor{
+.streamCursor {
   display: inline-block;
   width: 0.5em;
   height: 1.1em;
@@ -201,11 +193,11 @@ onBeforeUnmount(() => {
   border-radius: 2px;
   animation: blinkCursor 0.9s steps(1) infinite;
 }
-.messageContent :deep(.codeBlockWrapper){
+.messageContent :deep(.codeBlockWrapper) {
   position: relative;
   margin: 0.8em 0;
 }
-.messageContent :deep(pre){
+.messageContent :deep(pre) {
   overflow-x: auto;
   padding: 1em;
   border-radius: 12px;
@@ -213,7 +205,7 @@ onBeforeUnmount(() => {
   color: #f5f5f5;
   margin: 0;
 }
-.messageContent :deep(.codeCopyButton){
+.messageContent :deep(.codeCopyButton) {
   position: absolute;
   top: 10px;
   right: 10px;
@@ -226,47 +218,51 @@ onBeforeUnmount(() => {
   color: #fff;
   transition: all 250ms ease;
 }
-.messageContent :deep(code){
+.messageContent :deep(code) {
   font-family: Consolas, Monaco, monospace;
 }
-.messageContent :deep(p){
+.messageContent :deep(p) {
   margin: 0.45em 0;
 }
 .messageContent :deep(ul),
-.messageContent :deep(ol){
+.messageContent :deep(ol) {
   padding: 0 0 0 1.2em;
   margin: 0.45em 0;
 }
-.messageContent :deep(li){
+.messageContent :deep(li) {
   margin: 0.2em 0;
 }
-.messageContent :deep(a){
-  color: #8b0000;
+.messageContent :deep(a) {
+  color: var(--color-link);
   text-decoration: underline;
 }
-.messageContent :deep(blockquote){
+.messageContent :deep(blockquote) {
   margin: 0.7em 0;
   padding-left: 1em;
-  border-left: 4px solid rgba(0, 0, 0, 0.15);
+  border-left: 4px solid var(--color-border);
   opacity: 0.9;
 }
-.messageContent :deep(h1),.messageContent :deep(h2),.messageContent :deep(h3),.messageContent :deep(h4){
+.messageContent :deep(h1),
+.messageContent :deep(h2),
+.messageContent :deep(h3),
+.messageContent :deep(h4) {
   margin: 0.8em 0 0.45em;
   line-height: 1.35;
 }
-.messageContent :deep(table){
+.messageContent :deep(table) {
   width: 100%;
   border-collapse: collapse;
   margin: 0.8em 0;
   display: block;
   overflow-x: auto;
 }
-.messageContent :deep(th),.messageContent :deep(td){
-  border: 1px solid rgba(0, 0, 0, 0.12);
+.messageContent :deep(th),
+.messageContent :deep(td) {
+  border: 1px solid var(--color-border);
   padding: 0.6em 0.75em;
   text-align: left;
 }
-.iconButton{
+.iconButton {
   width: 32px;
   height: 32px;
   border: none;
@@ -275,30 +271,33 @@ onBeforeUnmount(() => {
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  background-color: rgb(255, 255, 255);
-  color: #000000;
+  background-color: var(--color-surface);
+  color: var(--color-text);
   font-size: 14px;
   transition: all 300ms ease;
 }
-.iconButton i{
+.iconButton i {
   pointer-events: none;
 }
-.iconButton:active{
+.iconButton:active {
   transform: scale(0.9);
 }
-@keyframes blinkCursor{
-  0%, 50%{
+@keyframes blinkCursor {
+  0%,
+  50% {
     opacity: 1;
   }
-  50.01%, 100%{
+  50.01%,
+  100% {
     opacity: 0;
   }
 }
-@media(width > 768px){
-  .messageActionButton:hover,.messageContent :deep(.codeCopyButton:hover){
+@media (width > 768px) {
+  .messageActionButton:hover,
+  .messageContent :deep(.codeCopyButton:hover) {
     background-color: gold;
   }
-  .iconButton:hover{
+  .iconButton:hover {
     background-color: gold;
     transform: translateY(-1px);
   }

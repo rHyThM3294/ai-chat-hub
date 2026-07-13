@@ -1,9 +1,10 @@
-import { createApp } from 'vue'
+import { createApp } from "vue";
 import { createPinia } from "pinia";
-import '@fortawesome/fontawesome-free/css/all.min.css'
+import "@fortawesome/fontawesome-free/css/all.min.css";
 import "highlight.js/styles/github-dark.css";
-import './style/reset.css'
-import App from './App.vue'
+import "./style/reset.css";
+import "./style.css";
+import App from "./App.vue";
 import { router } from "./router";
 
 createApp(App).use(createPinia()).use(router).mount("#app");

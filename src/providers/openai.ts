@@ -5,7 +5,7 @@ export const openaiProvider: ChatProvider = {
   id: "openai",
   displayName: "OpenAI (via Vercel)",
 
-  async send(_input: ChatSendInput, history: ChatMessage[]): Promise<ChatSendResult>{
+  async send(_input: ChatSendInput, history: ChatMessage[]): Promise<ChatSendResult> {
     const res = await fetch("/api/chat", {
       method: "POST",
       headers: { "content-type": "application/json" },
@@ -18,7 +18,7 @@ export const openaiProvider: ChatProvider = {
       }),
     });
 
-    if (!res.ok){
+    if (!res.ok) {
       const t = await res.text().catch(() => "");
       throw new Error(`API error (${res.status}): ${t || res.statusText}`);
     }
@@ -27,7 +27,7 @@ export const openaiProvider: ChatProvider = {
     return { assistantText: data.assistantText || "" };
   },
 
-  async stream(input: ChatSendInput, history: ChatMessage[], handlers){
+  async stream(input: ChatSendInput, history: ChatMessage[], handlers) {
     const res = await fetch("/api/chat", {
       method: "POST",
       headers: { "content-type": "application/json" },
@@ -45,31 +45,31 @@ export const openaiProvider: ChatProvider = {
       }),
     });
 
-    if (!res.ok){
+    if (!res.ok) {
       const t = await res.text().catch(() => "");
       throw new Error(`API error (${res.status}): ${t || res.statusText}`);
     }
 
     const reader = res.body?.getReader();
-    if (!reader){
+    if (!reader) {
       throw new Error("No response body");
     }
 
     const decoder = new TextDecoder();
     let buffer = "";
 
-    try{
-      while (true){
-        if (handlers.signal?.aborted){
+    try {
+      while (true) {
+        if (handlers.signal?.aborted) {
           handlers.onAbort?.();
           throw new DOMException("Aborted", "AbortError");
         }
 
         let result: ReadableStreamReadResult<Uint8Array>;
-        try{
+        try {
           result = await reader.read();
-        }catch (error){
-          if (handlers.signal?.aborted){
+        } catch (error) {
+          if (handlers.signal?.aborted) {
             handlers.onAbort?.();
             throw new DOMException("Aborted", "AbortError");
           }
@@ -83,28 +83,28 @@ export const openaiProvider: ChatProvider = {
         const chunks = buffer.split("\n\n");
         buffer = chunks.pop() || "";
 
-        for (const chunk of chunks){
+        for (const chunk of chunks) {
           const line = chunk.trim();
           if (!line.startsWith("data:")) continue;
 
           const raw = line.replace(/^data:\s*/, "");
 
           let json: any;
-          try{
+          try {
             json = JSON.parse(raw);
-          }catch{
+          } catch {
             continue;
           }
 
-          if (json.error){
+          if (json.error) {
             throw new Error(json.error);
           }
 
-          if (json.token){
+          if (json.token) {
             handlers.onToken(json.token);
           }
 
-          if (json.done){
+          if (json.done) {
             handlers.onDone?.();
             return;
           }

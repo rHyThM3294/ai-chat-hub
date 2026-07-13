@@ -4,76 +4,89 @@
   font-weight: 400;
 
   color-scheme: light dark;
-  color: rgba(255, 255, 255, 0.87);
-  background-color: #242424;
 
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+
+  /* 語意化色彩變數：預設為亮色主題 */
+  --color-bg: #ffffff;
+  --color-bg-elevated: #fafafa;
+  --color-surface: #ffffff;
+  --color-border: #d7d7d7;
+  --color-text: #1a1a1a;
+  --color-text-muted: #666666;
+  --color-accent: #8b0000;
+  --color-accent-contrast: #ffffff;
+  --color-bubble-assistant-bg: #f3f3f3;
+  --color-bubble-assistant-text: #222222;
+  --color-accent-soft-1: #fff8f8;
+  --color-accent-soft-2: #fff2f2;
+  --color-action-btn-bg: rgba(0, 0, 0, 0.08);
+  --color-action-btn-bg-hover: rgba(0, 0, 0, 0.16);
+  --color-hover-surface: #efefef;
+  --color-error: #b00020;
+  --color-link: #8b0000;
 }
 
-a {
-  font-weight: 500;
-  color: #646cff;
-  text-decoration: inherit;
-}
-a:hover {
-  color: #535bf2;
-}
-
-body {
-  margin: 0;
-  display: flex;
-  place-items: center;
-  min-width: 320px;
-  min-height: 100vh;
-}
-
-h1 {
-  font-size: 3.2em;
-  line-height: 1.1;
-}
-
-button {
-  border-radius: 8px;
-  border: 1px solid transparent;
-  padding: 0.6em 1.2em;
-  font-size: 1em;
-  font-weight: 500;
-  font-family: inherit;
-  background-color: #1a1a1a;
-  cursor: pointer;
-  transition: border-color 0.25s;
-}
-button:hover {
-  border-color: #646cff;
-}
-button:focus,
-button:focus-visible {
-  outline: 4px auto -webkit-focus-ring-color;
-}
-
-.card {
-  padding: 2em;
-}
-
-#app {
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 2rem;
-  text-align: center;
-}
-
-@media (prefers-color-scheme: light) {
+/* 未手動選擇主題時，跟隨系統偏好 */
+@media (prefers-color-scheme: dark) {
   :root {
-    color: #213547;
-    background-color: #ffffff;
+    --color-bg: #1a1a1a;
+    --color-bg-elevated: #222222;
+    --color-surface: #262626;
+    --color-border: #3a3a3a;
+    --color-text: #f0f0f0;
+    --color-text-muted: #a3a3a3;
+    --color-accent-contrast: #ffffff;
+    --color-bubble-assistant-bg: #2f2f2f;
+    --color-bubble-assistant-text: #f0f0f0;
+    --color-accent-soft-1: #3a1414;
+    --color-accent-soft-2: #2a0d0d;
+    --color-action-btn-bg: rgba(255, 255, 255, 0.1);
+    --color-action-btn-bg-hover: rgba(255, 255, 255, 0.18);
+    --color-hover-surface: #333333;
+    --color-error: #ff6b6b;
+    --color-link: #ff8a80;
   }
-  a:hover {
-    color: #747bff;
-  }
-  button {
-    background-color: #f9f9f9;
-  }
+}
+
+/* 手動切換主題，優先權高於系統偏好 */
+:root[data-theme="dark"] {
+  --color-bg: #1a1a1a;
+  --color-bg-elevated: #222222;
+  --color-surface: #262626;
+  --color-border: #3a3a3a;
+  --color-text: #f0f0f0;
+  --color-text-muted: #a3a3a3;
+  --color-accent-contrast: #ffffff;
+  --color-bubble-assistant-bg: #2f2f2f;
+  --color-bubble-assistant-text: #f0f0f0;
+  --color-accent-soft-1: #3a1414;
+  --color-accent-soft-2: #2a0d0d;
+  --color-action-btn-bg: rgba(255, 255, 255, 0.1);
+  --color-action-btn-bg-hover: rgba(255, 255, 255, 0.18);
+  --color-hover-surface: #333333;
+  --color-error: #ff6b6b;
+  --color-link: #ff8a80;
+}
+
+:root[data-theme="light"] {
+  --color-bg: #ffffff;
+  --color-bg-elevated: #fafafa;
+  --color-surface: #ffffff;
+  --color-border: #d7d7d7;
+  --color-text: #1a1a1a;
+  --color-text-muted: #666666;
+  --color-accent-contrast: #ffffff;
+  --color-bubble-assistant-bg: #f3f3f3;
+  --color-bubble-assistant-text: #222222;
+  --color-accent-soft-1: #fff8f8;
+  --color-accent-soft-2: #fff2f2;
+  --color-action-btn-bg: rgba(0, 0, 0, 0.08);
+  --color-action-btn-bg-hover: rgba(0, 0, 0, 0.16);
+  --color-hover-surface: #efefef;
+  --color-error: #b00020;
+  --color-link: #8b0000;
 }
