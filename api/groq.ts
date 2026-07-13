@@ -1,3 +1,4 @@
+import { checkRateLimit, getClientIp } from "./_lib/rateLimit";
 type Role = "user" | "assistant" | "system";
 type ContentPart =
   { type: "text"; text: string } | { type: "image_url"; image_url: { url: string } };
@@ -11,6 +12,12 @@ export const config = {
 export default async function handler(req: any, res: any) {
   let streamingStarted = false; // 追蹤是否已開始串流
   try {
+    const clientIp = getClientIp(req.headers ?? {});
+    const rateLimit = checkRateLimit(`groq:${clientIp}`);
+    if (!rateLimit.allowed) {
+      res.setHeader("Retry-After", String(rateLimit.retryAfterSeconds));
+      return res.status(429).json({ error: "Too many requests, please slow down." });
+    }
     if (req.method !== "POST") {
       return res.status(405).json({ error: "Method Not Allowed" });
     }

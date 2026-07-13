@@ -15,6 +15,7 @@
 - **匯出對話**：可將目前對話匯出成 Markdown 或 JSON 檔案下載，Markdown 版本會保留附加的圖片。
 - **無障礙支援**：對話清單項目為可鍵盤操作的 `listbox`/`option`、輸入框皆有 `aria-label`、Escape 可關閉側欄與匯出選單、AI 回覆完成時會透過 `aria-live` 廣播給螢幕閱讀器。
 - **API Key 不外洩**：金鑰只存在 Vercel 環境變數，前端一律透過 `/api/*` serverless function 代理呼叫，不會出現在瀏覽器端。
+- **限流防護**：`/api/groq`、`/api/chat` 依 IP 做簡易限流（每分鐘 20 次請求），避免有人略過前端直接打 API 消耗額度。實作是 serverless function 記憶體內計數（`api/_lib/rateLimit.ts`），優點是不需額外服務，缺點是不同執行實體間不共用計數，高流量時防護效果會打折扣；若流量成長，可換成 [Upstash](https://upstash.com/) Redis 等跨實體共享的方案。
 
 ## 技術棧
 
