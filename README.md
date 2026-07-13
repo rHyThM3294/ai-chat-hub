@@ -70,6 +70,16 @@ npm run build    # 型別檢查 (vue-tsc) + Vite production build
 npm run preview  # 預覽 build 結果
 ```
 
+## 測試
+
+```bash
+npm run test       # Vitest 單元測試（store / provider / utils）
+npm run test:e2e   # Playwright e2e 測試（會先自動 build，再對 production build 跑瀏覽器測試）
+npm run test:e2e:ui # 以互動式 UI 模式執行 e2e 測試，方便除錯
+```
+
+e2e 測試涵蓋首頁載入、傳送訊息與 Mock 回覆、暗色模式切換與持久化、圖片上傳與顯示。CI 會在每次 push/PR 時自動執行 lint、format check、單元測試、build 與 e2e 測試。
+
 ## 部署
 
 專案設定為部署到 [Vercel](https://vercel.com/)：
