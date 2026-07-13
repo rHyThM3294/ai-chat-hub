@@ -182,7 +182,7 @@ function formatTime(timestamp: number) {
   display: flex;
   flex-direction: column;
   gap: 8px;
-  padding-right: 2px;
+  padding: 8px 2px 0;
 }
 .conversationItem {
   position: relative;
