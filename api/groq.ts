@@ -1,8 +1,10 @@
 type Role = "user" | "assistant" | "system";
-type ChatMessage = { role: Role; content: string };
+type ContentPart =
+  { type: "text"; text: string } | { type: "image_url"; image_url: { url: string } };
+type ChatMessage = { role: Role; content: string | ContentPart[] };
 export const config = {
   api: {
-    bodyParser: true,
+    bodyParser: { sizeLimit: "15mb" },
     responseLimit: false,
   },
 };

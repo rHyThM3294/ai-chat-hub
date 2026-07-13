@@ -1,5 +1,29 @@
 import type { ChatProvider } from "@/providers/base";
 import type { ChatMessage, ChatSendInput, ChatSendResult } from "@/types/chat";
+
+const TEXT_MODEL = "llama-3.1-8b-instant";
+const VISION_MODEL = "meta-llama/llama-4-scout-17b-16e-instruct";
+
+function toGroqMessage(m: ChatMessage) {
+  if (!m.images || m.images.length === 0) {
+    return { role: m.role, content: m.content };
+  }
+  return {
+    role: m.role,
+    content: [
+      { type: "text", text: m.content },
+      ...m.images.map((img) => ({
+        type: "image_url" as const,
+        image_url: { url: img.dataUrl },
+      })),
+    ],
+  };
+}
+
+function pickModel(history: ChatMessage[]) {
+  return history.some((m) => m.images && m.images.length > 0) ? VISION_MODEL : TEXT_MODEL;
+}
+
 export const groqProvider: ChatProvider = {
   id: "groq",
   displayName: "Groq",
@@ -8,11 +32,8 @@ export const groqProvider: ChatProvider = {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({
-        model: "llama-3.1-8b-instant",
-        messages: history.map((m) => ({
-          role: m.role,
-          content: m.content,
-        })),
+        model: pickModel(history),
+        messages: history.map(toGroqMessage),
       }),
     });
     if (!r.ok) {
@@ -28,14 +49,11 @@ export const groqProvider: ChatProvider = {
       headers: { "content-type": "application/json" },
       signal: handlers.signal,
       body: JSON.stringify({
-        model: "llama-3.1-8b-instant",
+        model: pickModel(history),
         conversationId: input.conversationId,
         provider: input.provider,
         userText: input.userText,
-        messages: history.map((m) => ({
-          role: m.role,
-          content: m.content,
-        })),
+        messages: history.map(toGroqMessage),
       }),
     });
     if (!r.ok) {

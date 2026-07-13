@@ -8,7 +8,11 @@ function sleep(ms: number) {
 function buildMockReply(input: ChatSendInput, history: ChatMessage[]) {
   const lastUser = input.userText.trim();
   const turns = history.filter((m) => m.role !== "system").length;
-  return `你說的是：「${lastUser}」。\n` + `目前對話訊息數：${turns}。`;
+  const lastMessage = history[history.length - 1];
+  const imageNote = lastMessage?.images?.length
+    ? `\n（收到 ${lastMessage.images.length} 張圖片，Mock 模式不會真的分析圖片內容）`
+    : "";
+  return `你說的是：「${lastUser}」。\n` + `目前對話訊息數：${turns}。${imageNote}`;
 }
 
 export const mockProvider: ChatProvider = {

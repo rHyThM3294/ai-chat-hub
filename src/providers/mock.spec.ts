@@ -24,6 +24,23 @@ describe("mockProvider.send", () => {
     const result = await mockProvider.send(input, history);
     expect(result.assistantText).toContain("目前對話訊息數：1");
   });
+
+  it("mentions the attached image count without analyzing the image", async () => {
+    const history: ChatMessage[] = [
+      {
+        id: "u1",
+        role: "user",
+        content: "哈囉",
+        createdAt: 0,
+        images: [
+          { id: "img1", name: "a.png", dataUrl: "data:image/png;base64,AAA" },
+          { id: "img2", name: "b.png", dataUrl: "data:image/png;base64,BBB" },
+        ],
+      },
+    ];
+    const result = await mockProvider.send(input, history);
+    expect(result.assistantText).toContain("收到 2 張圖片");
+  });
 });
 
 describe("mockProvider.stream", () => {

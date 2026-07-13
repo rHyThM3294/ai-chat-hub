@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { groqProvider } from "./groq";
-import type { ChatSendInput } from "@/types/chat";
+import type { ChatMessage, ChatSendInput } from "@/types/chat";
 
 const input: ChatSendInput = {
   conversationId: "c1",
@@ -92,5 +92,53 @@ describe("groqProvider.stream", () => {
         onToken: () => {},
       })
     ).rejects.toThrow("rate limited");
+  });
+});
+
+describe("groqProvider model selection and image attachments", () => {
+  it("uses the text model and plain string content when no images are attached", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ assistantText: "ok" }),
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const history: ChatMessage[] = [{ id: "u1", role: "user", content: "hello", createdAt: 0 }];
+    await groqProvider.send(input, history);
+
+    const body = JSON.parse(fetchMock.mock.calls[0]![1].body);
+    expect(body.model).toBe("llama-3.1-8b-instant");
+    expect(body.messages).toEqual([{ role: "user", content: "hello" }]);
+  });
+
+  it("switches to the vision model and builds multi-part content when images are attached", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ assistantText: "ok" }),
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const history: ChatMessage[] = [
+      {
+        id: "u1",
+        role: "user",
+        content: "what is this?",
+        createdAt: 0,
+        images: [{ id: "img1", name: "photo.png", dataUrl: "data:image/png;base64,AAA" }],
+      },
+    ];
+    await groqProvider.send(input, history);
+
+    const body = JSON.parse(fetchMock.mock.calls[0]![1].body);
+    expect(body.model).toBe("meta-llama/llama-4-scout-17b-16e-instruct");
+    expect(body.messages).toEqual([
+      {
+        role: "user",
+        content: [
+          { type: "text", text: "what is this?" },
+          { type: "image_url", image_url: { url: "data:image/png;base64,AAA" } },
+        ],
+      },
+    ]);
   });
 });

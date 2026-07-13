@@ -1,5 +1,10 @@
 export type ProviderId = "mock" | "openai" | "groq" | "gemini" | "perplexity";
 export type Role = "user" | "assistant" | "system";
+export interface ChatImageAttachment {
+  id: string;
+  name: string;
+  dataUrl: string;
+}
 export interface ChatMessage {
   id: string;
   role: Role;
@@ -7,6 +12,7 @@ export interface ChatMessage {
   createdAt: number;
   tokenCount?: number;
   isStreaming?: boolean;
+  images?: ChatImageAttachment[];
 }
 export interface ChatConversation {
   id: string;

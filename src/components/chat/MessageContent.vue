@@ -23,6 +23,15 @@
         <i class="fa-solid fa-rotate-right"></i>
       </button>
     </div>
+    <div v-if="props.images?.length" class="messageImages">
+      <img
+        v-for="img in props.images"
+        :key="img.id"
+        :src="img.dataUrl"
+        :alt="img.name"
+        class="messageImage"
+      />
+    </div>
     <div class="messageContent" :class="{ isStreaming: props.isStreaming }">
       <!-- eslint-disable-next-line vue/no-v-html -- renderedHtml is sanitized via DOMPurify in renderMarkdown -->
       <div ref="contentRef" class="markdownBody" v-html="renderedHtml"></div>
@@ -38,12 +47,14 @@
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import MarkdownIt from "markdown-it";
 import hljs from "highlight.js";
+import type { ChatImageAttachment } from "@/types/chat";
 const props = defineProps<{
   content: string;
   isStreaming?: boolean;
   role?: "user" | "assistant" | "system";
   canRegenerate?: boolean;
   canEdit?: boolean;
+  images?: ChatImageAttachment[];
 }>();
 const emit = defineEmits<{
   (e: "regenerate"): void;
@@ -173,6 +184,19 @@ onBeforeUnmount(() => {
   background-color: var(--color-surface);
   color: var(--color-text);
   transition: all 300ms ease;
+}
+.messageImages {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.messageImage {
+  width: 160px;
+  height: 160px;
+  border-radius: 8px;
+  object-fit: cover;
+  border: 1px solid var(--color-border);
 }
 .messageContent {
   white-space: normal;

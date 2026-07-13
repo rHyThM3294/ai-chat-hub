@@ -1,6 +1,6 @@
 import { defineStore } from "pinia";
 import { computed, ref, watch } from "vue";
-import type { ChatConversation, ChatMessage, ProviderId } from "@/types/chat";
+import type { ChatConversation, ChatImageAttachment, ChatMessage, ProviderId } from "@/types/chat";
 import { uid } from "@/types/chat";
 import type { ChatProvider } from "@/providers/base";
 import { estimateTokens } from "@/utils/token";
@@ -38,7 +38,11 @@ function loadPersistedState(): PersistedChatState | null {
   }
 }
 function savePersistedState(state: PersistedChatState) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  } catch (err) {
+    console.warn("無法儲存對話紀錄（可能是圖片附件超過瀏覽器儲存上限）：", err);
+  }
 }
 export const useChatStore = defineStore("chat", () => {
   const persisted = loadPersistedState();
@@ -199,7 +203,7 @@ export const useChatStore = defineStore("chat", () => {
     }
     return { push, start, drain, abort };
   }
-  async function sendUserText(userText: string) {
+  async function sendUserText(userText: string, images?: ChatImageAttachment[]) {
     const text = userText.trim();
     if (!text || sending.value) return;
     if (!activeConversation.value) return;
@@ -214,6 +218,7 @@ export const useChatStore = defineStore("chat", () => {
       content: text,
       createdAt: Date.now(),
       tokenCount: estimateTokens(text),
+      ...(images && images.length > 0 ? { images } : {}),
     };
     targetConversation.messages.push(userMsg);
     targetConversation.updatedAt = Date.now();

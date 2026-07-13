@@ -10,6 +10,7 @@
 - **Markdown 渲染 + 程式碼高亮**：使用 `markdown-it` 解析、`DOMPurify` 消毒 XSS、`highlight.js` 上色，程式碼區塊可一鍵複製。
 - **對話重新生成 / 編輯重送**：可針對某則使用者訊息修改後重新生成、或直接重新生成某則 AI 回覆。
 - **Token 估算**：粗略估算每則訊息與整個對話的 token 數。
+- **圖片上傳（視覺理解）**：輸入框可附加圖片（最多 3 張、單張 3MB），送出後 Groq provider 會自動切換為視覺模型 `meta-llama/llama-4-scout-17b-16e-instruct` 進行圖片理解；`Mock` 模式僅會提示收到的圖片數量，不做實際分析。
 - **API Key 不外洩**：金鑰只存在 Vercel 環境變數，前端一律透過 `/api/*` serverless function 代理呼叫，不會出現在瀏覽器端。
 
 ## 技術棧
