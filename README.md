@@ -15,15 +15,14 @@
 
 ## 技術棧
 
-| 分類            | 使用技術                                     |
-| --------------- | -------------------------------------------- |
-| 框架            | Vue 3（`<script setup>`）、Vue Router、Pinia |
-| 語言            | TypeScript（`strict` 模式）                  |
-| 建置工具        | Vite                                         |
-| Markdown / 高亮 | markdown-it、highlight.js、DOMPurify         |
-| 動效            | GSAP                                         |
-| 圖示            | Font Awesome                                 |
-| 部署            | Vercel（Serverless Functions + 靜態網站）    |
+| 分類            | 使用技術                                                |
+| --------------- | ------------------------------------------------------- |
+| 框架            | Vue 3（`<script setup>`）、Vue Router、Pinia            |
+| 語言            | TypeScript（`strict` 模式）                             |
+| 建置工具        | Vite                                                    |
+| Markdown / 高亮 | markdown-it、highlight.js（core + 精選語言）、DOMPurify |
+| 圖示            | Font Awesome                                            |
+| 部署            | Vercel（Serverless Functions + 靜態網站）               |
 
 ## 專案架構
 

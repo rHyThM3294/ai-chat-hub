@@ -78,8 +78,10 @@ describe("conversation management", () => {
     const chat = useChatStore();
     vi.useFakeTimers();
     const sendPromise = chat.sendUserText("哈囉");
-    await sendPromise;
+    // sendUserText 現在會等畫面上的逐字動畫跑完才 resolve，所以要先把計時器推進去，
+    // 讓動畫真的跑完，再等這個 promise 結束（先 await 會卡死，因為假時鐘不會自己前進）
     await vi.advanceTimersByTimeAsync(5000);
+    await sendPromise;
     expect(chat.messages.length).toBeGreaterThan(0);
 
     chat.resetConversation();
@@ -94,9 +96,9 @@ describe("sendUserText with the mock provider", () => {
     const chat = useChatStore();
 
     const sendPromise = chat.sendUserText("哈囉");
-    await sendPromise;
-    // drain the 30ms-per-token display queue
+    // drain the 30ms-per-token display queue first, then the send promise resolves
     await vi.advanceTimersByTimeAsync(5000);
+    await sendPromise;
 
     expect(chat.sending).toBe(false);
     expect(chat.messages).toHaveLength(2);
@@ -116,12 +118,58 @@ describe("sendUserText with the mock provider", () => {
 
     const first = chat.sendUserText("第一句");
     const second = chat.sendUserText("第二句");
-    await Promise.all([first, second]);
     await vi.advanceTimersByTimeAsync(5000);
+    await Promise.all([first, second]);
 
     // the second call was dropped because `sending` was already true
     const userMessages = chat.messages.filter((m) => m.role === "user");
     expect(userMessages).toHaveLength(1);
     expect(userMessages[0]?.content).toBe("第一句");
+  });
+
+  it("blocks sending a new message until the previous reply has fully drained on screen", async () => {
+    vi.useFakeTimers();
+    const chat = useChatStore();
+
+    const firstSend = chat.sendUserText("哈囉");
+    // let the network/mock round-trip settle, but only drain a couple of
+    // characters of the 30ms-per-token display queue
+    await vi.advanceTimersByTimeAsync(60);
+    expect(chat.sending).toBe(true);
+
+    // sending while the previous reply is still animating on screen must be a no-op,
+    // otherwise the two replies' display queues race and corrupt each other's text
+    await chat.sendUserText("太快了");
+    expect(chat.messages.filter((m) => m.role === "user")).toHaveLength(1);
+
+    await vi.advanceTimersByTimeAsync(5000);
+    await firstSend;
+
+    expect(chat.sending).toBe(false);
+    const assistantMessage = chat.messages.find((m) => m.role === "assistant");
+    expect(assistantMessage?.isStreaming).toBe(false);
+    expect(assistantMessage?.content).toBe("你說的是：「哈囉」。\n目前對話訊息數：1。");
+
+    // now that the first reply is fully done, a second message can go through
+    const secondSend = chat.sendUserText("太快了");
+    await vi.advanceTimersByTimeAsync(5000);
+    await secondSend;
+    expect(chat.messages.filter((m) => m.role === "user")).toHaveLength(2);
+  });
+
+  it("stopGenerating finalizes the message immediately even mid-animation", async () => {
+    vi.useFakeTimers();
+    const chat = useChatStore();
+
+    const sendPromise = chat.sendUserText("哈囉");
+    await vi.advanceTimersByTimeAsync(60);
+    expect(chat.sending).toBe(true);
+
+    chat.stopGenerating();
+    await sendPromise;
+
+    expect(chat.sending).toBe(false);
+    const assistantMessage = chat.messages.find((m) => m.role === "assistant");
+    expect(assistantMessage?.isStreaming).toBe(false);
   });
 });

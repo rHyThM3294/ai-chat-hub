@@ -33,7 +33,7 @@
       />
     </div>
     <div class="messageContent" :class="{ isStreaming: props.isStreaming }">
-      <!-- eslint-disable-next-line vue/no-v-html -- renderedHtml is sanitized via DOMPurify in renderMarkdown -->
+      <!-- eslint-disable-next-line vue/no-v-html -- renderedHtml is sanitized via DOMPurify above -->
       <div ref="contentRef" class="markdownBody" v-html="renderedHtml"></div>
       <span
         v-if="props.isStreaming && props.content"
@@ -46,7 +46,8 @@
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import MarkdownIt from "markdown-it";
-import hljs from "highlight.js";
+import DOMPurify from "dompurify";
+import hljs from "@/utils/highlight";
 import type { ChatImageAttachment } from "@/types/chat";
 const props = defineProps<{
   content: string;
@@ -94,7 +95,7 @@ const renderedHtml = computed(() => {
   if (props.isStreaming) {
     return mdUtils.escapeHtml(props.content || "");
   }
-  return md.render(props.content || "");
+  return DOMPurify.sanitize(md.render(props.content || ""));
 });
 function resetMessageCopyState() {
   if (messageCopyTimer) {

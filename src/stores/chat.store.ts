@@ -54,6 +54,7 @@ export const useChatStore = defineStore("chat", () => {
   );
   const sending = ref(false);
   const currentAbortController = ref<AbortController | null>(null);
+  let currentDisplayQueue: ReturnType<typeof createDisplayQueue> | null = null;
   const canStop = computed(() => sending.value);
   const error = ref<string | null>(null);
   const activeConversation = computed(() => {
@@ -127,6 +128,8 @@ export const useChatStore = defineStore("chat", () => {
   }
   function stopGenerating() {
     if (!sending.value) return;
+    // 就算網路串流已經結束、只剩逐字動畫還在跑，也要能立即停止
+    currentDisplayQueue?.abort();
     if (!currentAbortController.value) return;
     currentAbortController.value.abort();
   }
@@ -164,8 +167,9 @@ export const useChatStore = defineStore("chat", () => {
         }
         // 佇列清空且已標記結束，才呼叫 onEmpty
         if (queue.length === 0 && onEmpty) {
-          onEmpty();
+          const callback = onEmpty;
           onEmpty = null;
+          callback();
         }
       }, intervalMs);
     }
@@ -200,6 +204,12 @@ export const useChatStore = defineStore("chat", () => {
         timer = null;
       }
       queue = [];
+      // 若有等待中的 drain callback，一併觸發，避免呼叫端卡住等不到結果
+      if (onEmpty) {
+        const callback = onEmpty;
+        onEmpty = null;
+        callback();
+      }
     }
     return { push, start, drain, abort };
   }
@@ -209,8 +219,6 @@ export const useChatStore = defineStore("chat", () => {
     if (!activeConversation.value) return;
     sending.value = true;
     error.value = null;
-    const controller = new AbortController();
-    currentAbortController.value = controller;
     const targetConversation = activeConversation.value;
     const userMsg: ChatMessage = {
       id: uid("u"),
@@ -225,67 +233,8 @@ export const useChatStore = defineStore("chat", () => {
     updateTitleFromFirstUserMessage(targetConversation.id);
 
     try {
-      const p = providers[targetConversation.provider];
-      if (!p) throw new Error("Provider not found");
-
-      const input = {
-        conversationId: targetConversation.id,
-        provider: targetConversation.provider,
-        userText: text,
-      };
       const history = [...targetConversation.messages];
-
-      // 直接 push 進響應式陣列，讓 Vue Proxy 包住這個物件
-      targetConversation.messages.push({
-        id: uid("a"),
-        role: "assistant",
-        content: "",
-        createdAt: Date.now(),
-        tokenCount: 0,
-        isStreaming: true,
-      });
-      targetConversation.updatedAt = Date.now();
-      if (p.stream) {
-        const queue = createDisplayQueue(30);
-        queue.start((token) => {
-          const last = getLastAssistantMsg(targetConversation);
-          if (last) last.content += token;
-        });
-        await p.stream(input, history, {
-          signal: controller.signal,
-          onToken(token) {
-            queue.push(token);
-          },
-          onDone() {
-            queue.drain(() => {
-              const last = getLastAssistantMsg(targetConversation);
-              if (last) {
-                last.isStreaming = false;
-                last.tokenCount = estimateTokens(last.content);
-              }
-              targetConversation.updatedAt = Date.now();
-            });
-          },
-          onAbort() {
-            queue.abort();
-            const last = getLastAssistantMsg(targetConversation);
-            if (last) {
-              last.isStreaming = false;
-              last.tokenCount = estimateTokens(last.content);
-            }
-            targetConversation.updatedAt = Date.now();
-          },
-        });
-      } else {
-        const res = await p.send(input, history);
-        const last = getLastAssistantMsg(targetConversation);
-        if (last) {
-          last.content = res.assistantText;
-          last.tokenCount = estimateTokens(res.assistantText);
-          last.isStreaming = false;
-        }
-        targetConversation.updatedAt = Date.now();
-      }
+      await generateAssistantReply(targetConversation, history, text);
     } catch (e) {
       if (isAbortError(e)) {
         const lastAssistant = [...targetConversation.messages]
@@ -309,9 +258,6 @@ export const useChatStore = defineStore("chat", () => {
       }
       targetConversation.updatedAt = Date.now();
     } finally {
-      if (currentAbortController.value === controller) {
-        currentAbortController.value = null;
-      }
       sending.value = false;
     }
   }
@@ -345,35 +291,49 @@ export const useChatStore = defineStore("chat", () => {
     try {
       if (p.stream) {
         const queue = createDisplayQueue(30); // 30ms 一個字，可以調整這個數字
+        currentDisplayQueue = queue;
+        let resolveDrained: () => void = () => {};
+        const drained = new Promise<void>((resolve) => {
+          resolveDrained = resolve;
+        });
         queue.start((token) => {
           const last = getLastAssistantMsg(targetConversation);
           if (last) last.content += token;
         });
-        await p.stream(input, history, {
-          signal: controller.signal,
-          onToken(token) {
-            queue.push(token);
-          },
-          onDone() {
-            queue.drain(() => {
+        try {
+          await p.stream(input, history, {
+            signal: controller.signal,
+            onToken(token) {
+              queue.push(token);
+            },
+            onDone() {
+              queue.drain(() => {
+                const last = getLastAssistantMsg(targetConversation);
+                if (last) {
+                  last.isStreaming = false;
+                  last.tokenCount = estimateTokens(last.content);
+                }
+                targetConversation.updatedAt = Date.now();
+                resolveDrained();
+              });
+            },
+            onAbort() {
+              queue.abort();
               const last = getLastAssistantMsg(targetConversation);
               if (last) {
                 last.isStreaming = false;
                 last.tokenCount = estimateTokens(last.content);
               }
               targetConversation.updatedAt = Date.now();
-            });
-          },
-          onAbort() {
-            queue.abort();
-            const last = getLastAssistantMsg(targetConversation);
-            if (last) {
-              last.isStreaming = false;
-              last.tokenCount = estimateTokens(last.content);
-            }
-            targetConversation.updatedAt = Date.now();
-          },
-        });
+              resolveDrained();
+            },
+          });
+          // 等畫面上的逐字動畫真的跑完，`sending` 才能真正結束，
+          // 否則使用者可能在動畫跑完前搶送下一則訊息，造成兩則回覆的文字互相交錯
+          await drained;
+        } finally {
+          queue.abort();
+        }
       } else {
         const res = await p.send(input, history);
         const last = getLastAssistantMsg(targetConversation);
@@ -387,6 +347,9 @@ export const useChatStore = defineStore("chat", () => {
     } finally {
       if (currentAbortController.value === controller) {
         currentAbortController.value = null;
+      }
+      if (currentDisplayQueue) {
+        currentDisplayQueue = null;
       }
     }
   }
