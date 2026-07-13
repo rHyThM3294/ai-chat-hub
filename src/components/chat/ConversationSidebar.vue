@@ -15,16 +15,26 @@
       + 新對話
     </button>
     <div class="searchWrapper">
-      <input v-model="searchText" type="text" class="searchInput" placeholder="搜尋聊天室" />
+      <input
+        v-model="searchText"
+        type="text"
+        class="searchInput"
+        placeholder="搜尋聊天室"
+        aria-label="搜尋聊天室"
+      />
     </div>
-    <div class="conversationList">
-      <button
+    <div class="conversationList" role="listbox" aria-label="對話清單">
+      <div
         v-for="item in filteredConversations"
         :key="item.id"
-        type="button"
         class="conversationItem"
         :class="{ active: item.id === chat.activeConversationId }"
+        role="option"
+        tabindex="0"
+        :aria-selected="item.id === chat.activeConversationId"
         @click="handleSelect(item.id)"
+        @keydown.enter="handleSelect(item.id)"
+        @keydown.space.prevent="handleSelect(item.id)"
       >
         <div class="conversationInfo">
           <template v-if="editingId === item.id">
@@ -34,10 +44,11 @@
               class="conversationTitleInput"
               type="text"
               maxlength="40"
+              aria-label="編輯聊天室名稱"
               @click.stop
               @dblclick.stop
-              @keydown.enter.prevent="saveEditing(item.id)"
-              @keydown.esc.prevent="cancelEditing"
+              @keydown.enter.prevent.stop="saveEditing(item.id)"
+              @keydown.esc.prevent.stop="cancelEditing"
               @blur="saveEditing(item.id)"
             />
           </template>
@@ -55,8 +66,15 @@
             {{ formatTime(item.updatedAt) }}
           </p>
         </div>
-        <span class="deleteButton" @click.stop="chat.deleteConversation(item.id)"> ✕ </span>
-      </button>
+        <button
+          type="button"
+          class="deleteButton"
+          aria-label="刪除這個對話"
+          @click.stop="chat.deleteConversation(item.id)"
+        >
+          ✕
+        </button>
+      </div>
       <p v-if="filteredConversations.length === 0" class="emptySearchText">找不到符合的聊天室</p>
     </div>
   </aside>

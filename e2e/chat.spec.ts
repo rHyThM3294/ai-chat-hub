@@ -59,4 +59,47 @@ test.describe("AI Chat Hub", () => {
     await page.click(".errorDismissButton");
     await expect(banner).toBeHidden();
   });
+
+  test("exports the active conversation as Markdown and JSON", async ({ page }) => {
+    await page.goto("/");
+    await page.fill(".userText", "你好");
+    await page.click(".sendButton");
+    await expect(page.locator(".messageRow.isAssistant")).toContainText("你說的是");
+
+    await page.click(".exportButton");
+    await expect(page.locator(".exportMenu")).toBeVisible();
+
+    const [mdDownload] = await Promise.all([
+      page.waitForEvent("download"),
+      page.click(".exportMenuItem >> text=匯出 Markdown"),
+    ]);
+    expect(mdDownload.suggestedFilename()).toMatch(/\.md$/);
+    await expect(page.locator(".exportMenu")).toBeHidden();
+
+    await page.click(".exportButton");
+    const [jsonDownload] = await Promise.all([
+      page.waitForEvent("download"),
+      page.click(".exportMenuItem >> text=匯出 JSON"),
+    ]);
+    expect(jsonDownload.suggestedFilename()).toMatch(/\.json$/);
+  });
+
+  test("conversation list is keyboard operable and Escape closes overlays", async ({ page }) => {
+    await page.goto("/");
+    await page.click(".newChat");
+    await page.click(".sidebarToggle");
+    await expect(page.locator(".sidebarPanel.isOpen")).toBeVisible();
+
+    const items = page.locator('.conversationItem[role="option"]');
+    const secondItem = items.nth(1);
+    await secondItem.focus();
+    await page.keyboard.press(" ");
+    await expect(secondItem).toHaveAttribute("aria-selected", "true");
+
+    const deleteButton = items.first().locator(".deleteButton");
+    await expect(deleteButton).toHaveJSProperty("tagName", "BUTTON");
+
+    await page.keyboard.press("Escape");
+    await expect(page.locator(".sidebarPanel.isOpen")).toBeHidden();
+  });
 });

@@ -12,6 +12,8 @@
 - **Token 估算**：粗略估算每則訊息與整個對話的 token 數。
 - **圖片上傳（視覺理解）**：輸入框可附加圖片（最多 3 張、單張 3MB），送出後 Groq provider 會自動切換為視覺模型 `meta-llama/llama-4-scout-17b-16e-instruct` 進行圖片理解；`Mock` 模式僅會提示收到的圖片數量，不做實際分析。
 - **錯誤處理 UI**：API 失敗（金鑰缺失、rate limit、伺服器錯誤、網路異常等）會轉換成友善的中文提示，並提供「重試」與「關閉」按鈕，而不是直接顯示原始錯誤字串。
+- **匯出對話**：可將目前對話匯出成 Markdown 或 JSON 檔案下載，Markdown 版本會保留附加的圖片。
+- **無障礙支援**：對話清單項目為可鍵盤操作的 `listbox`/`option`、輸入框皆有 `aria-label`、Escape 可關閉側欄與匯出選單、AI 回覆完成時會透過 `aria-live` 廣播給螢幕閱讀器。
 - **API Key 不外洩**：金鑰只存在 Vercel 環境變數，前端一律透過 `/api/*` serverless function 代理呼叫，不會出現在瀏覽器端。
 
 ## 技術棧

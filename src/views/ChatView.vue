@@ -25,7 +25,7 @@
           </div>
         </div>
         <div class="allModel">
-          <select v-model="chat.provider" class="model">
+          <select v-model="chat.provider" class="model" aria-label="選擇 AI 供應商">
             <option value="mock">Mock</option>
             <option value="openai" disabled>OpenAI</option>
             <option value="groq">Groq</option>
@@ -40,14 +40,47 @@
           >
             <i :class="theme === 'dark' ? 'fa-solid fa-sun' : 'fa-solid fa-moon'"></i>
           </button>
+          <div ref="exportWrapperRef" class="exportWrapper">
+            <button
+              type="button"
+              class="exportButton"
+              aria-label="匯出對話"
+              aria-haspopup="true"
+              :aria-expanded="exportMenuOpen"
+              :disabled="chat.messages.length === 0"
+              @click="toggleExportMenu"
+            >
+              <i class="fa-solid fa-download"></i>
+            </button>
+            <div v-if="exportMenuOpen" class="exportMenu" role="menu">
+              <button
+                type="button"
+                class="exportMenuItem"
+                role="menuitem"
+                @click="handleExport('markdown')"
+              >
+                匯出 Markdown
+              </button>
+              <button
+                type="button"
+                class="exportMenuItem"
+                role="menuitem"
+                @click="handleExport('json')"
+              >
+                匯出 JSON
+              </button>
+            </div>
+          </div>
           <button type="button" class="newChat" @click="chat.createNewConversation()">
             新對話
           </button>
         </div>
       </header>
       <div v-if="chat.error" class="errorBanner" role="alert">
-        <i class="fa-solid fa-triangle-exclamation errorBannerIcon"></i>
-        <span class="errorBannerText">{{ friendlyError }}</span>
+        <div class="errorBannerMain">
+          <i class="fa-solid fa-triangle-exclamation errorBannerIcon"></i>
+          <span class="errorBannerText">{{ friendlyError }}</span>
+        </div>
         <div class="errorBannerActions">
           <button
             v-if="canRetryError"
@@ -67,6 +100,7 @@
           </button>
         </div>
       </div>
+      <div class="sr-only" role="status" aria-live="polite">{{ latestAssistantAnnouncement }}</div>
       <section ref="conversationRef" class="conversation">
         <p v-if="chat.messages.length === 0" class="hint">
           目前使用 {{ chat.provider }} provider。
@@ -142,6 +176,7 @@
             autocapitalize="sentences"
             spellcheck="true"
             placeholder="輸入訊息"
+            aria-label="輸入訊息"
             @input="handleInput"
             @keydown="handleKeydown"
           ></textarea>
@@ -163,6 +198,7 @@ import { computed, nextTick, onMounted, onBeforeUnmount, ref, watch } from "vue"
 import { useChatStore } from "@/stores/chat.store";
 import { useTheme } from "@/composables/useTheme";
 import { humanizeError } from "@/utils/errorMessage";
+import { exportConversation, type ExportFormat } from "@/utils/exportConversation";
 import type { ChatImageAttachment, ChatMessage } from "@/types/chat";
 import { uid } from "@/types/chat";
 import MessageContent from "@/components/chat/MessageContent.vue";
@@ -177,6 +213,8 @@ const sidebarOpen = ref(false);
 const isDesktop = ref(false);
 const pendingImages = ref<ChatImageAttachment[]>([]);
 const imageError = ref<string | null>(null);
+const exportMenuOpen = ref(false);
+const exportWrapperRef = ref<HTMLElement | null>(null);
 const MAX_IMAGES = 3;
 const MAX_IMAGE_BYTES = 3 * 1024 * 1024;
 const canSend = computed(() => input.value.trim().length > 0 && !chat.sending);
@@ -190,6 +228,18 @@ function retryLastFailed() {
   if (!lastMessage.value) return;
   chat.regenerateAssistantMessage(lastMessage.value.id);
 }
+// 只在一則 AI 回覆真正完成時廣播一次給螢幕閱讀器，而不是逐字廣播造成干擾
+const latestAssistantAnnouncement = ref("");
+const lastCompletedAssistantText = computed(() => {
+  const last = lastMessage.value;
+  if (last && last.role === "assistant" && !last.isStreaming) {
+    return last.content;
+  }
+  return "";
+});
+watch(lastCompletedAssistantText, (text) => {
+  if (text) latestAssistantAnnouncement.value = text;
+});
 function fileToDataUrl(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -281,6 +331,32 @@ function openSidebar() {
 function closeSidebar() {
   sidebarOpen.value = false;
 }
+function toggleExportMenu() {
+  exportMenuOpen.value = !exportMenuOpen.value;
+}
+function handleExport(format: ExportFormat) {
+  if (chat.activeConversation) {
+    exportConversation(chat.activeConversation, format);
+  }
+  exportMenuOpen.value = false;
+}
+function handleWindowClick(e: MouseEvent) {
+  if (!exportMenuOpen.value) return;
+  const target = e.target as Node;
+  if (exportWrapperRef.value && !exportWrapperRef.value.contains(target)) {
+    exportMenuOpen.value = false;
+  }
+}
+function handleWindowKeydown(e: KeyboardEvent) {
+  if (e.key !== "Escape") return;
+  if (exportMenuOpen.value) {
+    exportMenuOpen.value = false;
+    return;
+  }
+  if (sidebarOpen.value) {
+    closeSidebar();
+  }
+}
 watch(
   () => chat.messages.map((m) => m.content).join("").length,
   async () => {
@@ -310,9 +386,13 @@ onMounted(() => {
   scrollToBottom(false);
   syncViewportState();
   window.addEventListener("resize", syncViewportState);
+  window.addEventListener("click", handleWindowClick);
+  window.addEventListener("keydown", handleWindowKeydown);
 });
 onBeforeUnmount(() => {
   window.removeEventListener("resize", syncViewportState);
+  window.removeEventListener("click", handleWindowClick);
+  window.removeEventListener("keydown", handleWindowKeydown);
 });
 </script>
 <style scoped>
@@ -472,6 +552,50 @@ onBeforeUnmount(() => {
   color: var(--color-text);
   transition: all ease 300ms;
 }
+.exportWrapper {
+  position: relative;
+}
+.exportButton {
+  min-height: 42px;
+  min-width: 42px;
+  padding: 0.5em;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background-color: var(--color-surface);
+  color: var(--color-text);
+  transition: all ease 300ms;
+}
+.exportButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.exportMenu {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  z-index: 20;
+  min-width: 160px;
+  display: flex;
+  flex-direction: column;
+  padding: 6px;
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  background-color: var(--color-surface);
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.12);
+}
+.exportMenuItem {
+  padding: 8px 10px;
+  border: none;
+  border-radius: 6px;
+  background-color: transparent;
+  color: var(--color-text);
+  text-align: left;
+  cursor: pointer;
+  transition: all ease 200ms;
+}
+.exportMenuItem:hover {
+  background-color: var(--color-hover-surface);
+}
 .conversation {
   flex: 1;
   min-height: 50vh;
@@ -562,8 +686,9 @@ onBeforeUnmount(() => {
 }
 .errorBanner {
   display: flex;
-  align-items: center;
-  gap: 0.6em;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.5em;
   margin-top: 0.9em;
   padding: 0.75em 1em;
   border-radius: 0.8em;
@@ -571,8 +696,14 @@ onBeforeUnmount(() => {
   background-color: var(--color-bg-elevated);
   color: var(--color-error);
 }
+.errorBannerMain {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6em;
+}
 .errorBannerIcon {
   flex-shrink: 0;
+  margin-top: 0.2em;
 }
 .errorBannerText {
   flex: 1;
@@ -582,6 +713,7 @@ onBeforeUnmount(() => {
 .errorBannerActions {
   display: flex;
   align-items: center;
+  justify-content: flex-end;
   gap: 0.5em;
   flex-shrink: 0;
 }
@@ -714,6 +846,13 @@ onBeforeUnmount(() => {
   opacity: 0.7;
 }
 @media (width > 768px) {
+  .errorBanner {
+    flex-direction: row;
+    align-items: center;
+  }
+  .errorBannerMain {
+    flex: 1;
+  }
   .sidebarToggle {
     top: 18px;
     left: 18px;
@@ -752,6 +891,9 @@ onBeforeUnmount(() => {
     background-color: #000000;
   }
   .themeToggle:hover {
+    background-color: var(--color-hover-surface);
+  }
+  .exportButton:hover:not(:disabled) {
     background-color: var(--color-hover-surface);
   }
   .attachButton:hover:not(:disabled) {
