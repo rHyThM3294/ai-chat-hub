@@ -107,7 +107,7 @@ onMounted(() => {
 .hint {
   font-size: 1em;
   font-weight: 700;
-  color: #ff93fd;
+  color: var(--color-text-muted);
   text-align: center;
   margin: auto 0;
 }

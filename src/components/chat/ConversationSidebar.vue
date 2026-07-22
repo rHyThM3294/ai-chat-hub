@@ -23,60 +23,51 @@
         aria-label="搜尋聊天室"
       />
     </div>
-    <div class="conversationList" role="listbox" aria-label="對話清單">
-      <div
+    <ul class="conversationList" aria-label="對話清單">
+      <li
         v-for="item in filteredConversations"
         :key="item.id"
         class="conversationItem"
         :class="{ active: item.id === chat.activeConversationId }"
-        role="option"
-        tabindex="0"
-        :aria-selected="item.id === chat.activeConversationId"
-        @click="handleSelect(item.id)"
-        @keydown.enter="handleSelect(item.id)"
-        @keydown.space.prevent="handleSelect(item.id)"
       >
-        <div class="conversationInfo">
-          <template v-if="editingId === item.id">
-            <input
-              ref="editingInputRef"
-              v-model="editingTitle"
-              class="conversationTitleInput"
-              type="text"
-              maxlength="40"
-              aria-label="編輯聊天室名稱"
-              @click.stop
-              @dblclick.stop
-              @keydown.enter.prevent.stop="saveEditing(item.id)"
-              @keydown.esc.prevent.stop="cancelEditing"
-              @blur="saveEditing(item.id)"
-            />
-          </template>
-          <template v-else>
-            <p
-              class="conversationTitle"
-              title="雙擊可修改名稱"
-              @dblclick.stop="startEditing(item.id, item.title)"
-            >
-              {{ item.title }}
-            </p>
-          </template>
-          <p class="conversationMeta">
+        <input
+          v-if="editingId === item.id"
+          ref="editingInputRef"
+          v-model="editingTitle"
+          class="conversationTitleInput"
+          type="text"
+          maxlength="40"
+          aria-label="編輯聊天室名稱"
+          @keydown.enter.prevent="saveEditing(item.id)"
+          @keydown.esc.prevent="cancelEditing"
+          @blur="saveEditing(item.id)"
+        />
+        <button
+          v-else
+          type="button"
+          class="conversationSelectButton"
+          :aria-current="item.id === chat.activeConversationId ? 'true' : undefined"
+          title="雙擊可修改名稱"
+          @click="handleSelect(item.id)"
+          @dblclick="startEditing(item.id, item.title)"
+        >
+          <span class="conversationTitle">{{ item.title }}</span>
+          <span class="conversationMeta">
             {{ item.provider }} ・ {{ item.messages.length }} 則訊息 ・
             {{ formatTime(item.updatedAt) }}
-          </p>
-        </div>
+          </span>
+        </button>
         <button
           type="button"
           class="deleteButton"
           aria-label="刪除這個對話"
-          @click.stop="chat.deleteConversation(item.id)"
+          @click="chat.deleteConversation(item.id)"
         >
           ✕
         </button>
-      </div>
-      <p v-if="filteredConversations.length === 0" class="emptySearchText">找不到符合的聊天室</p>
-    </div>
+      </li>
+      <li v-if="filteredConversations.length === 0" class="emptySearchText">找不到符合的聊天室</li>
+    </ul>
   </aside>
 </template>
 <script setup lang="ts">
@@ -101,7 +92,6 @@ const filteredConversations = computed(() => {
   });
 });
 function handleSelect(id: string) {
-  if (editingId.value) return;
   chat.switchConversation(id);
 }
 async function startEditing(id: string, title: string) {
@@ -214,8 +204,6 @@ function formatTime(timestamp: number) {
   justify-content: space-between;
   align-items: flex-start;
   gap: 10px;
-  text-align: left;
-  cursor: pointer;
   transition:
     border-color 250ms ease,
     background-color 250ms ease,
@@ -233,11 +221,23 @@ function formatTime(timestamp: number) {
     0 10px 24px rgba(139, 0, 0, 0.08),
     inset 3px 0 0 var(--color-accent);
 }
-.conversationInfo {
-  min-width: 0;
+.conversationSelectButton {
   flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0;
+  text-align: left;
+  cursor: pointer;
+  background: transparent;
+  border: none;
+  color: inherit;
+  font: inherit;
 }
 .conversationTitle {
+  display: block;
+  width: 100%;
   margin: 0 0 4px;
   font-weight: 700;
   color: var(--color-text);
@@ -261,6 +261,7 @@ function formatTime(timestamp: number) {
 }
 
 .conversationMeta {
+  display: block;
   margin: 0;
   font-size: 12px;
   color: var(--color-text-muted);

@@ -90,13 +90,13 @@ test.describe("AI Chat Hub", () => {
     await page.click(".sidebarToggle");
     await expect(page.locator(".sidebarPanel.isOpen")).toBeVisible();
 
-    const items = page.locator('.conversationItem[role="option"]');
-    const secondItem = items.nth(1);
-    await secondItem.focus();
+    const selectButtons = page.locator(".conversationSelectButton");
+    const secondButton = selectButtons.nth(1);
+    await secondButton.focus();
     await page.keyboard.press(" ");
-    await expect(secondItem).toHaveAttribute("aria-selected", "true");
+    await expect(secondButton).toHaveAttribute("aria-current", "true");
 
-    const deleteButton = items.first().locator(".deleteButton");
+    const deleteButton = page.locator(".conversationItem").first().locator(".deleteButton");
     await expect(deleteButton).toHaveJSProperty("tagName", "BUTTON");
 
     await page.keyboard.press("Escape");
