@@ -63,6 +63,7 @@ import { computed, onMounted, ref } from "vue";
 import { useChatStore } from "@/stores/chat.store";
 import { uid } from "@/types/chat";
 import type { ChatImageAttachment } from "@/types/chat";
+import { estimateRawBytesFromDataUrl } from "@/utils/imageSize";
 
 const chat = useChatStore();
 const input = ref("");
@@ -72,6 +73,21 @@ const pendingImages = ref<ChatImageAttachment[]>([]);
 const imageError = ref<string | null>(null);
 const MAX_IMAGES = 3;
 const MAX_IMAGE_BYTES = 3 * 1024 * 1024;
+// 後端 serverless function 的請求本文有 4.5MB 硬性上限（Vercel 無法調整），
+// 而每次送出都會把整個對話歷史（含過去附加的圖片）一起重送，
+// 所以要限制的是「這個對話目前累積的圖片資料總量」，不能只看單張圖片大小
+const MAX_TOTAL_CONVERSATION_IMAGE_BYTES = 3 * 1024 * 1024;
+
+function currentConversationImageBytes(): number {
+  const historyBytes = chat.messages
+    .flatMap((m) => m.images ?? [])
+    .reduce((sum, img) => sum + estimateRawBytesFromDataUrl(img.dataUrl), 0);
+  const pendingBytes = pendingImages.value.reduce(
+    (sum, img) => sum + estimateRawBytesFromDataUrl(img.dataUrl),
+    0
+  );
+  return historyBytes + pendingBytes;
+}
 
 const canSend = computed(() => input.value.trim().length > 0 && !chat.sending);
 const canStop = computed(() => chat.sending);
@@ -101,6 +117,10 @@ async function handleFileChange(e: Event) {
     if (file.size > MAX_IMAGE_BYTES) {
       imageError.value = `「${file.name}」超過 3MB 上限`;
       continue;
+    }
+    if (currentConversationImageBytes() + file.size > MAX_TOTAL_CONVERSATION_IMAGE_BYTES) {
+      imageError.value = "這個對話累積的圖片資料量已經太多，請開新對話或改用較小的圖片";
+      break;
     }
     const dataUrl = await fileToDataUrl(file);
     pendingImages.value.push({ id: uid("img"), name: file.name, dataUrl });

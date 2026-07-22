@@ -13,6 +13,10 @@ function createFile(name: string, type: string, sizeBytes: number) {
   return new File([new Uint8Array(sizeBytes)], name, { type });
 }
 
+function makeFakeDataUrl(rawBytes: number) {
+  return `data:image/png;base64,${btoa("a".repeat(rawBytes))}`;
+}
+
 async function selectFile(wrapper: ReturnType<typeof mount>, file: File) {
   const input = wrapper.find('input[type="file"]');
   Object.defineProperty(input.element, "files", { value: [file], configurable: true });
@@ -85,6 +89,23 @@ describe("ChatInputBar", () => {
 
     expect(wrapper.find(".pendingImageItem").exists()).toBe(true);
     await wrapper.find(".removeImageButton").trigger("click");
+    expect(wrapper.find(".pendingImageItem").exists()).toBe(false);
+  });
+
+  it("rejects a new image once the conversation's total image data would exceed the safe budget", async () => {
+    const chat = useChatStore();
+    chat.activeConversation!.messages.push({
+      id: "u1",
+      role: "user",
+      content: "之前的訊息",
+      createdAt: Date.now(),
+      images: [{ id: "img0", name: "old.png", dataUrl: makeFakeDataUrl(2.5 * 1024 * 1024) }],
+    });
+    const wrapper = mount(ChatInputBar);
+    const newFile = createFile("new.png", "image/png", 1 * 1024 * 1024);
+    await selectFile(wrapper, newFile);
+
+    expect(wrapper.find(".errorMessage").text()).toContain("圖片資料量已經太多");
     expect(wrapper.find(".pendingImageItem").exists()).toBe(false);
   });
 });
