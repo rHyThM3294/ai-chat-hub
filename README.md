@@ -10,7 +10,7 @@
 - **Markdown 渲染 + 程式碼高亮**：使用 `markdown-it` 解析、`DOMPurify` 消毒 XSS、`highlight.js` 上色，程式碼區塊可一鍵複製。
 - **對話重新生成 / 編輯重送**：可針對某則使用者訊息修改後重新生成、或直接重新生成某則 AI 回覆。
 - **Token 估算**：粗略估算每則訊息與整個對話的 token 數。
-- **圖片上傳（視覺理解）**：輸入框可附加圖片（最多 3 張、單張 3MB），送出後 Groq provider 會自動切換為視覺模型 `meta-llama/llama-4-scout-17b-16e-instruct` 進行圖片理解；`Mock` 模式僅會提示收到的圖片數量，不做實際分析。因為每次送出都會把整個對話歷史（含過去附加的圖片）重新傳送一次，而 Vercel 的 Node.js serverless function 有 4.5MB 的硬性請求大小上限，前端會額外估算「這個對話目前累積的圖片資料總量」並在接近上限前擋下新的附加，避免請求在後端被直接拒絕。
+- **圖片上傳（視覺理解）**：輸入框可附加圖片（最多 3 張、單張 3MB），送出後 Groq provider 會自動切換為視覺模型 `meta-llama/llama-4-scout-17b-16e-instruct` 進行圖片理解；`Mock` 模式僅會提示收到的圖片數量，不做實際分析。因為每次送出都會把整個對話歷史（含過去附加的圖片）重新傳送一次，而 Vercel 的 Node.js serverless function 有 4.5MB 的硬性請求大小上限，前端會額外估算「這個對話目前累積的圖片資料總量」並在接近上限前擋下新的附加，避免請求在後端被直接拒絕。已在正式環境實測：單張過大、以及對話累積超標這兩種情況都會被正確擋下並顯示對應的錯誤訊息。
 - **錯誤處理 UI**：API 失敗（金鑰缺失、rate limit、伺服器錯誤、網路異常等）會轉換成友善的中文提示，並提供「重試」與「關閉」按鈕，而不是直接顯示原始錯誤字串。
 - **匯出對話**：可將目前對話匯出成 Markdown 或 JSON 檔案下載，Markdown 版本會保留附加的圖片。
 - **無障礙支援**：對話清單項目用獨立按鈕（選取/刪除各自可鍵盤操作，不巢狀互動元素）、輸入框皆有 `aria-label`、Escape 可關閉側欄與匯出選單、AI 回覆完成時會透過 `aria-live` 廣播給螢幕閱讀器。以 Lighthouse 與 axe-core 實際跑過多種頁面狀態（含訊息、暗色模式、行動裝置側欄）驗證：Accessibility 100、SEO 100、Best Practices 100、Performance 95。
@@ -52,6 +52,10 @@ api/
 ├─ groq.ts    # Vercel Function：代理 Groq Chat Completions（SSE 轉發）
 ├─ chat.ts    # Vercel Function：代理 OpenAI Chat Completions（SSE 轉發）
 └─ ping.ts    # 健康檢查端點
+
+lib/
+└─ rateLimit.ts  # api/groq.ts、api/chat.ts 共用的限流邏輯
+                 # 放在 api/ 外面的一般資料夾，相對 import 需要明確副檔名（見下方部署踩坑筆記）
 ```
 
 ## 本地開發
