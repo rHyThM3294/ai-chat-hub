@@ -32,8 +32,14 @@
 
 ```
 src/
-├─ views/ChatView.vue           # 唯一頁面，整體版面配置
-├─ components/chat/             # 聊天室 UI（側欄、輸入框、訊息列表、訊息氣泡...）
+├─ views/ChatView.vue           # 唯一頁面，只負責整體版面外殼（側欄開合、layout）
+├─ components/chat/             # 聊天室 UI，依職責拆成獨立元件
+│  ├─ ChatHeader.vue            #   標題列、供應商選單、主題切換、匯出選單
+│  ├─ ErrorBanner.vue           #   錯誤提示（友善訊息、重試、關閉）
+│  ├─ MessageList.vue           #   訊息列表、自動捲動、aria-live 廣播
+│  ├─ ChatInputBar.vue          #   輸入框、圖片上傳、送出/停止
+│  ├─ ConversationSidebar.vue   #   對話清單側欄
+│  └─ MessageContent.vue        #   單則訊息內容（markdown、程式碼高亮、圖片）
 ├─ stores/chat.store.ts         # 核心狀態管理：對話 CRUD、串流節流佇列、localStorage 持久化
 ├─ providers/                   # LLM 供應商抽象層
 │  ├─ base.ts                   #   ChatProvider 介面定義
