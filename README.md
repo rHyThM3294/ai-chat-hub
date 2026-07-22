@@ -82,7 +82,7 @@ npm run preview  # 預覽 build 結果
 ## 測試
 
 ```bash
-npm run test       # Vitest 單元測試（store / provider / utils）
+npm run test       # Vitest 單元測試（store / provider / utils）+ 元件測試（@vue/test-utils）
 npm run test:e2e   # Playwright e2e 測試（會先自動 build，再對 production build 跑瀏覽器測試）
 npm run test:e2e:ui # 以互動式 UI 模式執行 e2e 測試，方便除錯
 ```
