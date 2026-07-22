@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { checkRateLimit, getClientIp } from "./rateLimit";
+import { checkRateLimit, getClientIp } from "./rateLimit.js";
 
 describe("checkRateLimit", () => {
   it("allows requests under the limit and blocks once the limit is exceeded", () => {

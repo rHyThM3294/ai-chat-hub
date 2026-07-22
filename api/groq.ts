@@ -1,4 +1,4 @@
-import { checkRateLimit, getClientIp } from "../lib/rateLimit";
+import { checkRateLimit, getClientIp } from "../lib/rateLimit.js";
 type Role = "user" | "assistant" | "system";
 type ContentPart =
   { type: "text"; text: string } | { type: "image_url"; image_url: { url: string } };

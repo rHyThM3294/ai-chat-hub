@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import handler from "./groq";
+import handler from "./groq.js";
 
 function createMockRes() {
   const res = {

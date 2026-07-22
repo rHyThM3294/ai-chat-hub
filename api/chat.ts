@@ -1,4 +1,4 @@
-import { checkRateLimit, getClientIp } from "../lib/rateLimit";
+import { checkRateLimit, getClientIp } from "../lib/rateLimit.js";
 type Role = "user" | "assistant" | "system";
 type ChatMessage = { role: Role; content: string };
 
